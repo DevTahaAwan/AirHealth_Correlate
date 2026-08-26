@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server";
 import { MockDataStore } from "@/lib/store";
 import { calculateSafeExposure } from "@/lib/services";
