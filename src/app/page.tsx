@@ -1,101 +1,198 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState, useEffect } from "react";
+import { Header } from "@/components/layout/header";
+import { Sidebar } from "@/components/layout/sidebar";
+import { MapWrapper } from "@/components/features/map-wrapper";
+import { SurgeAdvisoryBanner } from "@/components/ui/surge-advisory-banner";
+import { DistrictDetailDrawer } from "@/components/features/district-detail-drawer";
+import { SymptomReportModal } from "@/components/features/symptom-report-modal";
+import { DistrictListItem, SurgeFlagItem, DistrictDetail, SafeTimeResult } from "@/lib/types";
+import { getNearestDistrict } from "@/lib/utils/geolocation";
+import { MapPin } from "lucide-react";
+
+export default function DashboardPage() {
+  const [districts, setDistricts] = useState<DistrictListItem[]>([]);
+  const [surgeFlags, setSurgeFlags] = useState<SurgeFlagItem[]>([]);
+  const [selectedDistrictId, setSelectedDistrictId] = useState<string | null>(null);
+  
+  const [districtDetail, setDistrictDetail] = useState<DistrictDetail | null>(null);
+  const [safeTime, setSafeTime] = useState<SafeTimeResult | null>(null);
+  const [isDrawerLoading, setIsDrawerLoading] = useState(false);
+  
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+
+  // const { isSignedIn } = useAuth(); // unused
+
+  // Initial Data Fetch (Districts & Surge Flags)
+  useEffect(() => {
+    async function fetchInitialData() {
+      try {
+        const [distRes, surgeRes] = await Promise.all([
+          fetch("/api/v1/districts"),
+          fetch("/api/v1/surge-flags")
+        ]);
+        
+        const distJson = await distRes.json();
+        const surgeJson = await surgeRes.json();
+        
+        if (distJson.success) setDistricts(distJson.data);
+        if (surgeJson.success) setSurgeFlags(surgeJson.data);
+      } catch (err) {
+        console.error("Failed to fetch initial data", err);
+      }
+    }
+    fetchInitialData();
+  }, []);
+
+  // Auto-detect location on mount if permitted, or prompt
+  useEffect(() => {
+    handleDetectLocation();
+  }, []);
+
+  const handleDetectLocation = async () => {
+    setIsDetectingLocation(true);
+    setLocationError(null);
+    try {
+      const nearest = await getNearestDistrict();
+      if (nearest) {
+        setSelectedDistrictId(nearest.district_id);
+      }
+    } catch {
+      // Silently fail if location access is denied or errors out
+    } finally {
+      setIsDetectingLocation(false);
+    }
+  };
+
+  // Fetch District Detail & Safe Time when selected
+  useEffect(() => {
+    if (!selectedDistrictId) {
+      setDistrictDetail(null);
+      setSafeTime(null);
+      return;
+    }
+
+    async function fetchDetail() {
+      setIsDrawerLoading(true);
+      try {
+        // Get user conditions if any
+        const conditions = localStorage.getItem("airhealth_user_conditions");
+        const conditionsQuery = conditions ? `?conditions=${JSON.parse(conditions).join(",")}` : "";
+
+        const [detailRes, safeRes] = await Promise.all([
+          fetch(`/api/v1/districts/${selectedDistrictId}`),
+          fetch(`/api/v1/safe-time?district_id=${selectedDistrictId}${conditionsQuery.replace("?","&")}`) // Quick hack for param joining
+        ]);
+
+        const detailJson = await detailRes.json();
+        const safeJson = await safeRes.json();
+
+        if (detailJson.success) setDistrictDetail(detailJson.data);
+        if (safeJson.success) setSafeTime(safeJson.data);
+      } catch (err) {
+        console.error("Failed to fetch district detail", err);
+      } finally {
+        setIsDrawerLoading(false);
+      }
+    }
+
+    fetchDetail();
+  }, [selectedDistrictId]);
+
+  const handleDistrictSelect = (id: string) => {
+    setSelectedDistrictId(id);
+  };
+
+  const closeDrawer = () => {
+    setSelectedDistrictId(null);
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+    <div className="h-screen flex flex-col overflow-hidden bg-bg-primary">
+      <Header />
+      
+      <div className="flex-1 flex overflow-hidden relative">
+        <Sidebar onDistrictSelect={handleDistrictSelect} selectedDistrictId={selectedDistrictId} />
+        
+        <main className="flex-1 relative flex flex-col z-0">
+          {/* Absolute Surge Banner Floating Over Map */}
+          <div className="absolute top-4 left-4 right-4 z-10 pointer-events-none flex flex-col items-center gap-2">
+            <SurgeAdvisoryBanner 
+              flags={surgeFlags} 
+              onActionClick={(id) => handleDistrictSelect(id)}
+              className="pointer-events-auto w-full max-w-2xl mx-auto"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+            
+            {/* Location Detection Button (if error or manual trigger) */}
+            <div className="pointer-events-auto flex flex-col items-center">
+              <button 
+                onClick={() => handleDetectLocation()}
+                disabled={isDetectingLocation}
+                className="bg-bg-secondary text-text-primary shadow-elevated rounded-full px-4 py-2 text-sm font-semibold flex items-center gap-2 hover:bg-bg-tertiary transition-colors disabled:opacity-50"
+              >
+                <MapPin className="h-4 w-4 text-community" />
+                {isDetectingLocation ? "Detecting..." : "Use My Location"}
+              </button>
+              {locationError && (
+                <span className="text-xs text-error font-medium bg-error-subtle px-2 py-1 rounded mt-1 shadow-sm">
+                  {locationError}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <MapWrapper 
+            districts={districts}
+            surgeFlags={surgeFlags}
+            selectedDistrictId={selectedDistrictId}
+            onDistrictSelect={handleDistrictSelect}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+          {/* Floating Report Button (Bottom Center) */}
+          <div className="absolute bottom-6 left-0 right-0 flex justify-center z-10 pointer-events-none">
+            <button
+              onClick={() => setIsReportModalOpen(true)}
+              className="pointer-events-auto bg-community hover:bg-community-text text-white font-semibold py-3 px-6 rounded-full shadow-elevated flex items-center gap-2 transition-transform hover:scale-105"
+            >
+              <span className="relative flex h-3 w-3 mr-1">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-40"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+              </span>
+              Report Symptoms
+            </button>
+          </div>
+        </main>
+      </div>
+
+      <DistrictDetailDrawer 
+        district={districtDetail}
+        safeTime={safeTime}
+        isOpen={selectedDistrictId !== null}
+        onClose={closeDrawer}
+        isLoading={isDrawerLoading}
+      />
+
+      <SymptomReportModal
+        districtId={selectedDistrictId || (districts[0]?.district_id || "")}
+        districtName={districtDetail?.name || "your area"}
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        onSuccess={() => {
+          // Re-fetch data on success to show updated UI
+          fetch("/api/v1/districts").then(r => r.json()).then(j => {
+            if (j.success) setDistricts(j.data);
+          });
+          if (selectedDistrictId) {
+             fetch(`/api/v1/districts/${selectedDistrictId}`).then(r => r.json()).then(j => {
+              if (j.success) setDistrictDetail(j.data);
+            });
+          }
+        }}
+      />
     </div>
   );
 }
