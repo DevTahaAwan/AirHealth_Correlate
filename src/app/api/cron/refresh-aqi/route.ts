@@ -14,6 +14,7 @@ interface AqicnResponse {
     };
     time: {
       s: string; // "2023-11-20 08:00:00"
+      iso: string; // "2023-11-20T08:00:00+05:00"
     };
   };
 }
@@ -60,19 +61,19 @@ export async function GET(request: Request) {
   let fallbackCount = 0;
   let failCount = 0;
 
-  // 4. Fetch the real base reading from AQICN for Lahore
-  // In a real multi-station setup, we'd loop through each station's external_station_id.
-  // Here, we fetch the city-level feed and apply our "Hybrid Offset" for the hackathon.
+  // 4. Fetch the real base reading from AQICN for Lahore (US Consulate station)
+  // Station @11423 is actively maintained and avoids the stale city-level feed.
   const token = process.env.AQICN_API_TOKEN;
   let baseAqi = 150; // Fallback default
   let basePm25: number | null = null;
   let basePm10: number | null = null;
   let baseTime = new Date().toISOString();
   let fetchSuccess = false;
+  let staleDataSkipped = false;
 
   try {
     if (!token) throw new Error("AQICN_API_TOKEN is not set");
-    const res = await fetch(`https://api.waqi.info/feed/lahore/?token=${token}`);
+    const res = await fetch(`https://api.waqi.info/feed/@11423/?token=${token}`);
     const json = (await res.json()) as AqicnResponse;
 
     if (json.status === "ok") {
@@ -80,16 +81,49 @@ export async function GET(request: Request) {
       basePm25 = json.data.iaqi?.pm25?.v ?? null;
       basePm10 = json.data.iaqi?.pm10?.v ?? null;
       
-      // Try to parse the AQICN time, otherwise use now
-      try {
-         baseTime = new Date(json.data.time.s).toISOString();
-      } catch {
-         // ignore
+      // Parse the ISO timestamp from the response for age checking
+      const isoString = json.data.time.iso || json.data.time.s;
+      const recordedDate = new Date(isoString);
+      baseTime = recordedDate.toISOString();
+
+      // Defensive age check: reject data older than 24 hours
+      const ageMs = Date.now() - recordedDate.getTime();
+      const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+      if (ageMs > MAX_AGE_MS) {
+        console.warn(
+          `AQICN data is stale (recorded_at: ${baseTime}, age: ${(ageMs / 3600000).toFixed(1)}h). Skipping insert.`
+        );
+        staleDataSkipped = true;
+      } else {
+        fetchSuccess = true;
       }
-      fetchSuccess = true;
     }
   } catch (error) {
     console.error("Failed to fetch AQICN data:", error);
+  }
+
+  // If the data is stale, abort early — do not insert stale readings
+  if (staleDataSkipped) {
+    await supabase
+      .from("ingestion_runs")
+      .update({
+        completed_at: new Date().toISOString(),
+        stations_succeeded: 0,
+        stations_fallback: 0,
+        stations_failed: 0
+      })
+      .eq("id", runId);
+
+    return NextResponse.json({
+      success: false,
+      error: "Stale data rejected",
+      data: {
+        run_id: runId,
+        recorded_at: baseTime,
+        message: "AQICN returned data older than 24 hours. No readings were inserted."
+      }
+    }, { status: 200 });
   }
 
   // 5. Process each station
