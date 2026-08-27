@@ -6,6 +6,7 @@
    AirHealth Correlate — Global Styles
    Design System: "Institutional Alert Light"
    ============================================================ */
+@import "leaflet/dist/leaflet.css";
 
 /* === Font Loading (Inter via next/font/google) === */
 :root {

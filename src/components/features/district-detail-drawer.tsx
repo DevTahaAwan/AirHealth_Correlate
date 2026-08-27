@@ -139,42 +139,36 @@ export function DistrictDetailDrawer({
                 )}
 
                 {/* Weather & Smog Context */}
-                {district.weather && (
-                  <div className="border border-border-default rounded-lg p-4 bg-bg-primary">
-                    <h3 className="font-semibold text-text-primary mb-3">
-                      Weather & Smog Context
-                    </h3>
-                    <div className="flex flex-col gap-2">
+                <div className="border border-border-default rounded-lg p-4 bg-bg-primary">
+                  <h3 className="font-semibold text-text-primary mb-3">
+                    Live Weather & Smog Context
+                  </h3>
+                  {!district.weather ? (
+                    <div className="flex items-center justify-center p-4 bg-bg-tertiary rounded-md animate-pulse">
+                      <span className="text-sm text-text-secondary">Fetching weather context...</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-xl">🌡️</span>
                         <span className="text-sm font-medium text-text-primary">
-                          {district.weather.temperature}°C
-                        </span>
-                        <span className="text-sm text-text-secondary ml-2">
-                          Wind: {district.weather.windSpeed} km/h
+                          Temperature: <span className="font-normal text-text-secondary">🌡️ {district.weather.temperature}°C</span>
                         </span>
                       </div>
                       
-                      {district.weather.windSpeed > 10 && (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-2.5 flex items-start gap-2 shadow-sm mt-1">
-                          <span className="text-lg">🌬️</span>
-                          <span className="text-xs text-green-800 font-medium pt-0.5">
-                            Breeze actively dispersing smog.
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-text-primary">
+                          Wind: <span className="font-normal text-text-secondary">💨 {district.weather.windSpeed} km/h {district.weather.windSpeed > 10 ? "- Breeze actively dispersing smog" : ""}</span>
+                        </span>
+                      </div>
                       
-                      {district.weather.precipitation > 0 && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 flex items-start gap-2 shadow-sm mt-1">
-                          <span className="text-lg">🌧️</span>
-                          <span className="text-xs text-blue-800 font-medium pt-0.5">
-                            Rain washing away airborne PM2.5.
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-text-primary">
+                          Rain: <span className="font-normal text-text-secondary">🌧️ {district.weather.precipitation}mm expected</span>
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* 3. Community Signal (Symptom Summary) */}
                 <div>
