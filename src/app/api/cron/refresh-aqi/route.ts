@@ -87,12 +87,12 @@ export async function GET(request: Request) {
       baseTime = recordedDate.toISOString();
 
       // Defensive age check: reject data older than 24 hours
-      const ageMs = Date.now() - recordedDate.getTime();
-      const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+      const now = new Date();
+      const diffInHours = (now.getTime() - recordedDate.getTime()) / (1000 * 60 * 60);
 
-      if (ageMs > MAX_AGE_MS) {
+      if (diffInHours > 24) {
         console.warn(
-          `AQICN data is stale (recorded_at: ${baseTime}, age: ${(ageMs / 3600000).toFixed(1)}h). Skipping insert.`
+          `AQICN data is stale (recorded_at: ${baseTime}, age: ${diffInHours.toFixed(1)}h). Skipping insert.`
         );
         staleDataSkipped = true;
       } else {
