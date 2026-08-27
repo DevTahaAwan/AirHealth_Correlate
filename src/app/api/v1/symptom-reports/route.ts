@@ -12,8 +12,8 @@ const symptomEnum = z.enum([
 ]);
 
 const reportSchema = z.object({
-  user_id: z.string().uuid(),
-  district_id: z.string().uuid(),
+  user_id: z.string().min(1),
+  district_id: z.string().min(1),
   symptoms: z.array(symptomEnum).min(1),
 });
 
@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     const result = reportSchema.safeParse(body);
 
     if (!result.success) {
+      console.error("Invalid payload error:", result.error.format());
       return NextResponse.json(
         { success: false, error: { code: "BAD_REQUEST", message: "Invalid payload", details: result.error.format() } },
         { status: 400 }

@@ -6,8 +6,9 @@ export async function GET() {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("v_district_current_status")
-    .select("*")
-    .order("display_order");
+    .select("*");
+
+  console.log("Supabase districts fetch result:", { data, error });
 
   if (error || !data) {
     return NextResponse.json(
