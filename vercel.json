@@ -1,12 +1,1 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/refresh-aqi",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron/compute-surge-heuristic",
-      "schedule": "0 */6 * * *"
-    }
-  ]
-}
+{}
