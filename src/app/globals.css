@@ -109,27 +109,149 @@ body {
   z-index: 0;
 }
 
+/* ── Fix: Ensure all Leaflet controls sit above our UI layers ── */
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 10 !important;
+}
+
+/* ── Zoom Control ────────────────────────────────────────────── */
 .leaflet-control-zoom {
   border: 1px solid var(--border-default) !important;
-  border-radius: 8px !important;
+  border-radius: 10px !important;
   overflow: hidden;
-  box-shadow: 0px 1px 2px 0px rgba(15, 23, 42, 0.06) !important;
+  box-shadow: 0 2px 8px 0 rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(15, 23, 42, 0.04) !important;
+  margin-left: 12px !important;
+  margin-bottom: 12px !important;
 }
 
 .leaflet-control-zoom a {
   background-color: var(--bg-secondary) !important;
   color: var(--text-primary) !important;
   border-bottom: 1px solid var(--border-default) !important;
-  width: 32px !important;
-  height: 32px !important;
-  line-height: 32px !important;
+  width: 34px !important;
+  height: 34px !important;
+  line-height: 34px !important;
   font-size: 16px !important;
+  transition: background-color 150ms ease;
+}
+
+.leaflet-control-zoom a:last-child {
+  border-bottom: none !important;
 }
 
 .leaflet-control-zoom a:hover {
   background-color: var(--bg-primary) !important;
 }
 
+/* ── Layers Control (Standard / Satellite toggle) ────────────── */
+.leaflet-control-layers {
+  border: 1px solid var(--border-default) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 2px 8px 0 rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(15, 23, 42, 0.04) !important;
+  overflow: hidden;
+  background: var(--bg-secondary) !important;
+  margin-top: 12px !important;
+  margin-right: 12px !important;
+}
+
+.leaflet-control-layers-toggle {
+  width: 34px !important;
+  height: 34px !important;
+  background-size: 18px 18px !important;
+  transition: background-color 150ms ease;
+}
+
+.leaflet-control-layers-toggle:hover {
+  background-color: var(--bg-primary) !important;
+}
+
+.leaflet-control-layers-expanded {
+  padding: 8px 12px !important;
+  min-width: 160px;
+}
+
+.leaflet-control-layers-list {
+  font-family: var(--font-inter) !important;
+  font-size: 13px !important;
+  color: var(--text-primary) !important;
+}
+
+.leaflet-control-layers label {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px;
+  padding: 4px 0 !important;
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.leaflet-control-layers label:hover {
+  color: var(--brand) !important;
+}
+
+.leaflet-control-layers-separator {
+  border-top: 1px solid var(--border-subtle) !important;
+  margin: 4px 0 !important;
+}
+
+/* ── Custom Recenter Button ──────────────────────────────────── */
+.recenter-control {
+  position: absolute;
+  bottom: 24px;
+  right: 12px;
+  z-index: 10;
+}
+
+.recenter-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font-inter);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 2px 8px 0 rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(15, 23, 42, 0.04);
+  transition: background-color 150ms ease, box-shadow 150ms ease,
+    transform 100ms ease;
+  white-space: nowrap;
+}
+
+.recenter-button:hover {
+  background-color: var(--bg-primary);
+  box-shadow: 0 4px 12px 0 rgba(15, 23, 42, 0.12),
+    0 0 0 1px rgba(15, 23, 42, 0.06);
+}
+
+.recenter-button:active {
+  transform: scale(0.96);
+  box-shadow: 0 1px 4px 0 rgba(15, 23, 42, 0.1);
+}
+
+.recenter-button svg {
+  flex-shrink: 0;
+  color: var(--brand);
+}
+
+.recenter-label {
+  line-height: 1;
+}
+
+/* ── Interactive district circles: pointer cursor on hover ──── */
+.district-circle-interactive {
+  cursor: pointer !important;
+}
+
+/* ── Popup / Tooltip ─────────────────────────────────────────── */
 .leaflet-popup-content-wrapper {
   border-radius: 12px !important;
   box-shadow: 0px 4px 12px 0px rgba(15, 23, 42, 0.1) !important;
@@ -145,6 +267,15 @@ body {
 .leaflet-popup-tip {
   background: var(--bg-secondary) !important;
   border: 1px solid var(--border-default) !important;
+}
+
+/* ── Attribution: tuck it away neatly ────────────────────────── */
+.leaflet-control-attribution {
+  font-size: 10px !important;
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(4px);
+  border-radius: 6px 0 0 0 !important;
+  padding: 2px 8px !important;
 }
 
 /* === Skeleton Loaders === */
