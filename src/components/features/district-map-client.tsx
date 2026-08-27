@@ -58,8 +58,8 @@ export function DistrictMapClient({
         zoomControl={false}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
         
         <MapController selectedId={selectedDistrictId} districts={districts} />
@@ -68,18 +68,21 @@ export function DistrictMapClient({
         {districts.map((district) => {
           const isSelected = selectedDistrictId === district.district_id;
           const isSurge = surgeFlags.some(f => f.district_id === district.district_id);
-          
+          // Fix 3: Gracefully handle null AQI — render gray circle instead of disappearing
+          const hasData = district.aqi !== null && district.aqi !== undefined;
+          const markerColor = hasData ? getRiskColor(district.risk_tier) : "#CBD5E1";
+
           return (
             <CircleMarker
               key={`aqi-${district.district_id}`}
               center={[district.centroid_lat, district.centroid_lng]}
               radius={isSelected ? 45 : 30}
               pathOptions={{
-                fillColor: getRiskColor(district.risk_tier),
-                fillOpacity: 0.3,
-                color: isSurge ? "#db2777" : getRiskColor(district.risk_tier), // Surge border
+                fillColor: markerColor,
+                fillOpacity: hasData ? 0.3 : 0.15,
+                color: isSurge ? "#db2777" : markerColor,
                 weight: isSurge ? 4 : (isSelected ? 3 : 1),
-                dashArray: isSurge ? "5, 5" : undefined, // Pulsing/dashed effect for surge
+                dashArray: isSurge ? "5, 5" : (hasData ? undefined : "4, 4"),
               }}
               eventHandlers={{
                 click: () => onDistrictSelect(district.district_id),
@@ -89,7 +92,14 @@ export function DistrictMapClient({
                 <div className="p-1">
                   <p className="font-semibold text-text-primary">{district.name}</p>
                   <p className="text-sm">
-                    AQI: <span className="font-medium" style={{ color: getRiskColor(district.risk_tier) }}>{district.aqi}</span>
+                    AQI:{" "}
+                    {hasData ? (
+                      <span className="font-medium" style={{ color: markerColor }}>
+                        {district.aqi}
+                      </span>
+                    ) : (
+                      <span className="font-medium text-slate-400">No Data</span>
+                    )}
                   </p>
                 </div>
               </Tooltip>

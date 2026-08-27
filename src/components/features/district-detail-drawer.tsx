@@ -66,10 +66,16 @@ export function DistrictDetailDrawer({
                 <div
                   className={cn(
                     "rounded-xl p-5 text-white shadow-sm",
-                    district.risk_tier === "low" && "bg-risk-low",
-                    district.risk_tier === "moderate" && "bg-risk-moderate",
-                    district.risk_tier === "high" && "bg-risk-high",
-                    district.risk_tier === "very_high" && "bg-risk-very-high surge-pulse-gradient"
+                    // Fix 4: Safely fall back to a neutral style when AQI is null
+                    district.aqi == null
+                      ? "bg-slate-500"
+                      : district.risk_tier === "low"
+                      ? "bg-risk-low"
+                      : district.risk_tier === "moderate"
+                      ? "bg-risk-moderate"
+                      : district.risk_tier === "high"
+                      ? "bg-risk-high"
+                      : "bg-risk-very-high surge-pulse-gradient"
                   )}
                 >
                   <div className="flex justify-between items-start mb-2">
@@ -77,19 +83,24 @@ export function DistrictDetailDrawer({
                       Air Quality Index
                     </span>
                     <DataBadge type="estimated" className="bg-white/20 text-white border-white/10">
-                      Measured
+                      {district.aqi != null ? "Measured" : "Pending"}
                     </DataBadge>
                   </div>
                   <div className="flex items-end gap-2 mb-4">
                     <span className="text-5xl font-black leading-none tracking-tighter">
-                      {district.aqi}
+                      {/* Fix 4: Show "--" placeholder when AQI not yet available */}
+                      {district.aqi ?? "--"}
                     </span>
                     <span className="text-lg font-medium opacity-90 mb-1">
-                      {(district.risk_tier || "low").replace("_", " ").toUpperCase()}
+                      {district.aqi != null
+                        ? (district.risk_tier || "low").replace("_", " ").toUpperCase()
+                        : "DATA PENDING"}
                     </span>
                   </div>
                   <p className="text-sm opacity-95 leading-relaxed font-medium">
-                    {district.advisory_text}
+                    {district.aqi != null
+                      ? district.advisory_text
+                      : "AQI data for this district has not been recorded yet. Please check back after the next sensor sync."}
                   </p>
                 </div>
 

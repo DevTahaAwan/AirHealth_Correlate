@@ -62,6 +62,18 @@ export function Sidebar({ onDistrictSelect, selectedDistrictId }: SidebarProps) 
               <SkeletonLoader variant="text" className="w-1/3" />
             </div>
           ))
+        ) : !districts || districts.length === 0 ? (
+          // Fix 2: Defensive empty-state — shown when DB has no AQI data yet
+          <div className="p-6 flex flex-col items-center justify-center text-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-bg-tertiary flex items-center justify-center">
+              <Activity className="h-5 w-5 text-text-tertiary" />
+            </div>
+            <p className="text-sm text-slate-500 leading-relaxed">
+              No district data available yet.
+              <br />
+              Waiting for sensor sync&hellip;
+            </p>
+          </div>
         ) : (
           districts.map((district) => {
             const isActive = selectedDistrictId === district.district_id;
@@ -88,14 +100,15 @@ export function Sidebar({ onDistrictSelect, selectedDistrictId }: SidebarProps) 
                     {district.name}
                   </span>
                   <DataBadge type="risk" riskTier={district.risk_tier || "low"}>
-                    {district.aqi || "--"} AQI
+                    {/* Fix 2: Guard null AQI in badge */}
+                    {district.aqi != null ? `${district.aqi} AQI` : "-- AQI"}
                   </DataBadge>
                 </div>
-                
+
                 <div className="flex items-center justify-between text-xs text-text-secondary mt-2">
                   <span className="flex items-center gap-1">
                     <Activity className="h-3 w-3 text-community" />
-                    {district.symptom_reports_today} Reports
+                    {district.symptom_reports_today ?? 0} Reports
                   </span>
                   {isSurge && (
                     <span className="flex items-center gap-1 text-surge">
