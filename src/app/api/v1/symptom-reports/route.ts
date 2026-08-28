@@ -9,12 +9,15 @@ const symptomEnum = z.enum([
   "shortness_of_breath",
   "chest_tightness",
   "inhaler_used",
+  "eye_irritation"
 ]);
 
 const reportSchema = z.object({
   user_id: z.string().min(1),
   district_id: z.string().min(1),
   symptoms: z.array(symptomEnum).min(1),
+  severity: z.number().min(1).max(10),
+  duration: z.string().min(1),
 });
 
 export async function POST(request: Request) {
@@ -30,15 +33,34 @@ export async function POST(request: Request) {
       );
     }
 
-    const { user_id: device_id, district_id, symptoms } = result.data;
+    const { user_id: device_id, district_id, symptoms, severity, duration } = result.data;
     const supabase = getSupabaseAdmin();
     const today = new Date().toISOString().split('T')[0];
+
+    // Explicitly check for an existing report today from this device in this district
+    const { data: existingReport } = await supabase
+      .from("symptom_reports")
+      .select("id")
+      .eq("device_id", device_id)
+      .eq("district_id", district_id)
+      .eq("reported_at", today)
+      .limit(1)
+      .single();
+
+    if (existingReport) {
+      return NextResponse.json(
+        { success: false, error: { code: "BAD_REQUEST", message: "You have already submitted a report today." } },
+        { status: 400 }
+      );
+    }
 
     // Prepare rows to insert (one per symptom)
     const rowsToInsert = symptoms.map(symptom => ({
       device_id,
       district_id,
       symptom,
+      severity,
+      duration,
       reported_at: today
     }));
 
@@ -48,13 +70,6 @@ export async function POST(request: Request) {
       .select();
 
     if (error) {
-      // 23505 is the PostgreSQL unique constraint violation code
-      if (error.code === '23505') {
-        return NextResponse.json(
-          { success: false, error: { code: "CONFLICT", message: "You have already reported symptoms today." } },
-          { status: 409 }
-        );
-      }
       throw error;
     }
 

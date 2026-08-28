@@ -75,6 +75,7 @@ export async function GET(
       shortness_of_breath: 0,
       chest_tightness: 0,
       inhaler_used: 0,
+      eye_irritation: 0,
     },
     suppressed: false,
   };

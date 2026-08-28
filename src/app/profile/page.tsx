@@ -19,6 +19,8 @@ const CONDITIONS: { id: RespiratoryCondition; label: string; desc: string }[] = 
 export default function ProfileSetupPage() {
   const router = useRouter();
   const [selected, setSelected] = useState<RespiratoryCondition[]>([]);
+  const [ageGroup, setAgeGroup] = useState<string>("adult");
+  const [exposure, setExposure] = useState<string>("mostly_indoors");
   const [isSaving, setIsSaving] = useState(false);
   
   const [locationName, setLocationName] = useState<string | null>(null);
@@ -45,6 +47,8 @@ export default function ProfileSetupPage() {
     // Mock save to localStorage
     setTimeout(() => {
       localStorage.setItem("airhealth_user_conditions", JSON.stringify(selected));
+      localStorage.setItem("airhealth_user_age", ageGroup);
+      localStorage.setItem("airhealth_user_exposure", exposure);
       router.push("/");
     }, 800);
   };
@@ -66,14 +70,18 @@ export default function ProfileSetupPage() {
 
   // Load existing
   useEffect(() => {
-    const saved = localStorage.getItem("airhealth_user_conditions");
-    if (saved) {
+    const savedConditions = localStorage.getItem("airhealth_user_conditions");
+    if (savedConditions) {
       try {
-        setSelected(JSON.parse(saved));
+        setSelected(JSON.parse(savedConditions));
       } catch {
         // Ignore error
       }
     }
+    const savedAge = localStorage.getItem("airhealth_user_age");
+    if (savedAge) setAgeGroup(savedAge);
+    const savedExposure = localStorage.getItem("airhealth_user_exposure");
+    if (savedExposure) setExposure(savedExposure);
   }, []);
 
 
@@ -114,6 +122,56 @@ export default function ProfileSetupPage() {
               </button>
             );
           })}
+        </div>
+
+        {/* Age Group */}
+        <div className="mb-10">
+          <h2 className="text-xl font-bold text-text-primary mb-3">Age Group</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[
+              { id: "child", label: "Child (Under 12)" },
+              { id: "adult", label: "Adult" },
+              { id: "senior", label: "Senior (65+)" }
+            ].map(age => (
+              <button
+                key={age.id}
+                onClick={() => setAgeGroup(age.id)}
+                className={cn(
+                  "p-4 rounded-xl border-2 text-center transition-all",
+                  ageGroup === age.id
+                    ? "border-brand bg-brand-subtle text-brand-active font-semibold"
+                    : "border-border-default bg-bg-secondary hover:border-brand/50 text-text-primary"
+                )}
+              >
+                {age.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Outdoor Exposure */}
+        <div className="mb-10">
+          <h2 className="text-xl font-bold text-text-primary mb-3">Outdoor Exposure Level</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[
+              { id: "mostly_indoors", label: "Mostly Indoors" },
+              { id: "commuter", label: "Daily Commuter" },
+              { id: "outdoor_worker", label: "Outdoor Worker" }
+            ].map(exp => (
+              <button
+                key={exp.id}
+                onClick={() => setExposure(exp.id)}
+                className={cn(
+                  "p-4 rounded-xl border-2 text-center transition-all",
+                  exposure === exp.id
+                    ? "border-brand bg-brand-subtle text-brand-active font-semibold"
+                    : "border-border-default bg-bg-secondary hover:border-brand/50 text-text-primary"
+                )}
+              >
+                {exp.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Optional Location Detection */}

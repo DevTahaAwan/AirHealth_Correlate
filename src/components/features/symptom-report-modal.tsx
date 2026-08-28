@@ -14,6 +14,7 @@ const SYMPTOMS: { id: SymptomType; label: string }[] = [
   { id: "shortness_of_breath", label: "Shortness of Breath" },
   { id: "chest_tightness", label: "Chest Tightness" },
   { id: "inhaler_used", label: "Used Rescue Inhaler" },
+  { id: "eye_irritation", label: "Eye Irritation" },
 ];
 
 interface SymptomReportModalProps {
@@ -32,6 +33,8 @@ export function SymptomReportModal({
   onSuccess,
 }: SymptomReportModalProps) {
   const [selectedSymptoms, setSelectedSymptoms] = useState<SymptomType[]>([]);
+  const [severity, setSeverity] = useState<number>(5);
+  const [duration, setDuration] = useState<string>("few_hours");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -67,6 +70,8 @@ export function SymptomReportModal({
           user_id: deviceId,
           district_id: districtId,
           symptoms: selectedSymptoms,
+          severity,
+          duration,
         }),
       });
 
@@ -138,6 +143,56 @@ export function SymptomReportModal({
                       </button>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* Severity Slider */}
+              <div className="space-y-2 pt-2 border-t border-border-subtle">
+                <div className="flex justify-between items-center">
+                  <label className="text-sm font-medium text-text-primary">
+                    Symptom Severity (1-10)
+                  </label>
+                  <span className="text-sm font-bold text-community">{severity}</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="10"
+                  value={severity}
+                  onChange={(e) => setSeverity(Number(e.target.value))}
+                  className="w-full h-2 bg-border-default rounded-lg appearance-none cursor-pointer accent-community"
+                />
+                <div className="flex justify-between text-xs text-text-secondary px-1">
+                  <span>Mild</span>
+                  <span>Severe</span>
+                </div>
+              </div>
+
+              {/* Duration Selector */}
+              <div className="space-y-2 pt-2 border-t border-border-subtle">
+                <label className="text-sm font-medium text-text-primary">
+                  How long have you felt this?
+                </label>
+                <div className="grid grid-cols-3 gap-2 mt-1">
+                  {[
+                    { id: "just_started", label: "Just Started" },
+                    { id: "few_hours", label: "Few Hours" },
+                    { id: "all_day", label: "All Day" },
+                  ].map((dur) => (
+                    <button
+                      key={dur.id}
+                      type="button"
+                      onClick={() => setDuration(dur.id)}
+                      className={cn(
+                        "py-2 px-1 text-xs font-medium rounded-md border transition-colors text-center",
+                        duration === dur.id
+                          ? "border-brand bg-brand-subtle text-brand-active"
+                          : "border-border-default hover:border-text-placeholder bg-bg-secondary text-text-primary"
+                      )}
+                    >
+                      {dur.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 

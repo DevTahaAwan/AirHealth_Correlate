@@ -78,9 +78,9 @@ export class MockDataStore {
     if (this.reports.length === 0) {
       const today = new Date().toISOString();
       this.reports.push(
-        { id: "sr_1", user_id: "u_1", district_id: "dst_model_town", symptoms: ["coughing", "wheezing"], reported_at: today },
-        { id: "sr_2", user_id: "u_2", district_id: "dst_model_town", symptoms: ["shortness_of_breath"], reported_at: today },
-        { id: "sr_3", user_id: "u_3", district_id: "dst_gulberg", symptoms: ["chest_tightness"], reported_at: today },
+        { id: "sr_1", user_id: "u_1", district_id: "dst_model_town", symptoms: ["coughing", "wheezing"], severity: 5, duration: "few_hours", reported_at: today },
+        { id: "sr_2", user_id: "u_2", district_id: "dst_model_town", symptoms: ["shortness_of_breath"], severity: 7, duration: "all_day", reported_at: today },
+        { id: "sr_3", user_id: "u_3", district_id: "dst_gulberg", symptoms: ["chest_tightness"], severity: 4, duration: "just_started", reported_at: today },
       );
     }
   }

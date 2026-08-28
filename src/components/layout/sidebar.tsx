@@ -101,7 +101,7 @@ export function Sidebar({ onDistrictSelect, selectedDistrictId }: SidebarProps) 
                   </span>
                   <DataBadge type="risk" riskTier={district.risk_tier || "low"}>
                     {/* Fix 2: Guard null AQI in badge */}
-                    {district.aqi != null ? `${district.aqi} AQI` : "-- AQI"}
+                    {district.aqi ?? "--"} AQI
                   </DataBadge>
                 </div>
 

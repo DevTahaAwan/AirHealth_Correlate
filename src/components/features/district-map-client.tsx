@@ -159,7 +159,7 @@ export function DistrictMapClient({
             district.aqi !== null && district.aqi !== undefined;
           const markerColor = hasData
             ? getRiskColor(district.risk_tier)
-            : "#CBD5E1";
+            : "#475569";
 
           return (
             <CircleMarker
@@ -168,9 +168,9 @@ export function DistrictMapClient({
               radius={isSelected ? 45 : 30}
               pathOptions={{
                 fillColor: markerColor,
-                fillOpacity: hasData ? 0.3 : 0.15,
+                fillOpacity: hasData ? 0.3 : 0.5,
                 color: isSurge ? "#db2777" : markerColor,
-                weight: isSurge ? 4 : isSelected ? 3 : 1,
+                weight: isSurge ? 4 : isSelected ? 3 : hasData ? 1 : 2,
                 dashArray: isSurge
                   ? "5, 5"
                   : hasData

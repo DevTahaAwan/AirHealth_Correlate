@@ -28,13 +28,16 @@ export async function GET(request: Request) {
 
   const aqi = district.aqi || 50;
   
+  const ageGroup = searchParams.get("ageGroup") || "adult";
+  const exposure = searchParams.get("exposure") || "mostly_indoors";
+
   // Parse conditions (comma separated)
   let conditions: RespiratoryCondition[] = [];
   if (conditionsParam) {
     conditions = conditionsParam.split(",") as RespiratoryCondition[];
   }
 
-  const result = calculateSafeExposure(aqi, conditions);
+  const result = calculateSafeExposure(aqi, conditions, ageGroup, exposure);
   result.district_id = districtId;
 
   return NextResponse.json({

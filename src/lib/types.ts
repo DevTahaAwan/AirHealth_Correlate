@@ -12,7 +12,8 @@ export type SymptomType =
   | "coughing"
   | "shortness_of_breath"
   | "chest_tightness"
-  | "inhaler_used";
+  | "inhaler_used"
+  | "eye_irritation";
 
 export type RespiratoryCondition =
   | "asthma"
@@ -80,6 +81,8 @@ export interface SymptomReport {
   user_id: string;
   district_id: string;
   symptoms: SymptomType[];
+  severity: number;
+  duration: string;
   reported_at: string;
 }
 

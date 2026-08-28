@@ -18,7 +18,9 @@ const BASELINE_SAFE_MINUTES = 120; // 2 hours for a healthy adult at moderate AQ
  */
 export function calculateSafeExposure(
   aqi: number,
-  conditions: RespiratoryCondition[] = []
+  conditions: RespiratoryCondition[] = [],
+  ageGroup: string = "adult",
+  exposure: string = "mostly_indoors"
 ): SafeTimeResult {
   let riskTier: RiskTier = "low";
   let multiplier = 1.0;
@@ -49,7 +51,15 @@ export function calculateSafeExposure(
     penalty = 0.7;
   }
 
-  const safeMinutes = Math.round(BASELINE_SAFE_MINUTES * multiplier * penalty);
+  let ageMultiplier = 1.0;
+  if (ageGroup === "child") ageMultiplier = 0.7;
+  if (ageGroup === "senior") ageMultiplier = 0.6;
+
+  let exposureMultiplier = 1.0;
+  if (exposure === "commuter") exposureMultiplier = 0.8;
+  if (exposure === "outdoor_worker") exposureMultiplier = 0.5;
+
+  const safeMinutes = Math.round(BASELINE_SAFE_MINUTES * multiplier * penalty * ageMultiplier * exposureMultiplier);
 
   return {
     district_id: "unknown",

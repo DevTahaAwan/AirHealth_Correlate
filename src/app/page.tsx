@@ -79,19 +79,42 @@ export default function DashboardPage() {
     async function fetchDetail() {
       setIsDrawerLoading(true);
       try {
-        // Get user conditions if any
-        const conditions = localStorage.getItem("airhealth_user_conditions");
-        const conditionsQuery = conditions ? `?conditions=${JSON.parse(conditions).join(",")}` : "";
+        // Get user profile modifiers
+        const conditionsStr = localStorage.getItem("airhealth_user_conditions");
+        const ageGroup = localStorage.getItem("airhealth_user_age") || "adult";
+        const exposure = localStorage.getItem("airhealth_user_exposure") || "mostly_indoors";
+        
+        let safeTimeUrl = `/api/v1/safe-time?district_id=${selectedDistrictId}&ageGroup=${ageGroup}&exposure=${exposure}`;
+        if (conditionsStr) {
+          try {
+            const conditions = JSON.parse(conditionsStr);
+            if (conditions.length > 0) {
+              safeTimeUrl += `&conditions=${conditions.join(",")}`;
+            }
+          } catch {
+            // Ignore parse errors
+          }
+        }
 
         const [detailRes, safeRes] = await Promise.all([
           fetch(`/api/v1/districts/${selectedDistrictId}`),
-          fetch(`/api/v1/safe-time?district_id=${selectedDistrictId}${conditionsQuery.replace("?","&")}`) // Quick hack for param joining
+          fetch(safeTimeUrl)
         ]);
 
         const detailJson = await detailRes.json();
         const safeJson = await safeRes.json();
 
-        if (detailJson.success) setDistrictDetail(detailJson.data);
+        if (detailJson.success) {
+          const listMatch = districts.find(d => d.district_id === selectedDistrictId);
+          const merged = { ...detailJson.data };
+          if (listMatch) {
+            merged.aqi = listMatch.aqi;
+            merged.pm25 = listMatch.pm25;
+            merged.risk_tier = listMatch.risk_tier;
+            merged.has_aqi_data = listMatch.has_aqi_data;
+          }
+          setDistrictDetail(merged);
+        }
         if (safeJson.success) setSafeTime(safeJson.data);
       } catch (err) {
         console.error("Failed to fetch district detail", err);
@@ -101,6 +124,7 @@ export default function DashboardPage() {
     }
 
     fetchDetail();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDistrictId]);
 
   const handleDistrictSelect = (id: string) => {
