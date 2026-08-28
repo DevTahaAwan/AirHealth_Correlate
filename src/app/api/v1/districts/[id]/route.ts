@@ -106,12 +106,14 @@ export async function GET(
   let rainExpected = false;
   let weatherContext: DistrictDetail["weather"] = undefined;
   
+  let hourlyForecast: { time: string; temp: number }[] | undefined;
+  
   try {
     const lat = district.centroid_lat || 31.5204;
     const lng = district.centroid_lng || 74.3587;
     // Fetch both daily precipitation (for rainExpected) and current weather
     const meteoRes = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=precipitation_sum&current=temperature_2m,wind_speed_10m,precipitation&past_days=0&forecast_days=2&timezone=auto`
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,precipitation_probability&daily=precipitation_sum&current=temperature_2m,wind_speed_10m,precipitation&past_days=0&forecast_days=2&timezone=auto`
     );
     
     if (meteoRes.ok) {
@@ -119,7 +121,6 @@ export async function GET(
       
       if (meteoJson.daily && meteoJson.daily.precipitation_sum) {
         const sums = meteoJson.daily.precipitation_sum as number[];
-        // If today or tomorrow has > 0mm rain
         rainExpected = sums.some(sum => sum > 0);
       }
 
@@ -129,6 +130,20 @@ export async function GET(
           windSpeed: meteoJson.current.wind_speed_10m || 0,
           precipitation: meteoJson.current.precipitation || 0,
         };
+      }
+
+      if (meteoJson.hourly && meteoJson.hourly.time && meteoJson.hourly.temperature_2m) {
+        hourlyForecast = meteoJson.hourly.time.slice(0, 24).map((timeStr: string, idx: number) => {
+          const date = new Date(timeStr);
+          // Format as "2 PM" or "14:00" depending on locale. Let's do simple AM/PM
+          const hours = date.getHours();
+          const ampm = hours >= 12 ? 'PM' : 'AM';
+          const hr12 = hours % 12 || 12;
+          return {
+            time: `${hr12}:00 ${ampm}`,
+            temp: meteoJson.hourly.temperature_2m[idx]
+          };
+        });
       }
     }
   } catch (err) {
@@ -156,6 +171,7 @@ export async function GET(
     population: popData?.population || 500000,
     rain_expected: rainExpected,
     weather: weatherContext,
+    hourly_forecast: hourlyForecast,
   };
 
   const response: ApiResponse<DistrictDetail> = {

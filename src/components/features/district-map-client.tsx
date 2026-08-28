@@ -7,6 +7,7 @@ import {
   CircleMarker,
   Tooltip,
   LayersControl,
+  LayerGroup,
   useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -121,6 +122,7 @@ export function DistrictMapClient({
         zoom={DEFAULT_ZOOM}
         className="w-full h-full"
         zoomControl={true}
+        attributionControl={false}
       >
         {/* ── Tile Layers via LayersControl ─────────────────── */}
         <LayersControl position="topright">
@@ -132,10 +134,14 @@ export function DistrictMapClient({
           </LayersControl.BaseLayer>
 
           <LayersControl.BaseLayer name="Satellite View">
-            <TileLayer
-              attribution="Tiles &copy; Esri"
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            />
+            <LayerGroup>
+              <TileLayer
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              />
+              <TileLayer
+                url="https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+              />
+            </LayerGroup>
           </LayersControl.BaseLayer>
         </LayersControl>
 
@@ -183,30 +189,8 @@ export function DistrictMapClient({
                 click: () => onDistrictSelect(district.district_id),
               }}
             >
-              <Tooltip
-                sticky
-                className="font-inter rounded-md border border-border-default"
-              >
-                <div className="p-1">
-                  <p className="font-semibold text-text-primary">
-                    {district.name}
-                  </p>
-                  <p className="text-sm">
-                    AQI:{" "}
-                    {hasData ? (
-                      <span
-                        className="font-medium"
-                        style={{ color: markerColor }}
-                      >
-                        {district.aqi}
-                      </span>
-                    ) : (
-                      <span className="font-medium text-slate-400">
-                        No Data
-                      </span>
-                    )}
-                  </p>
-                </div>
+              <Tooltip direction="top" sticky className="font-inter font-medium text-sm">
+                {district.name} - AQI: {district.aqi ?? 'Pending'}
               </Tooltip>
             </CircleMarker>
           );

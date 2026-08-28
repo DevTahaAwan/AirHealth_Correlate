@@ -87,8 +87,7 @@ export function Sidebar({ onDistrictSelect, selectedDistrictId }: SidebarProps) 
                   "block p-3 rounded-md transition-colors cursor-pointer",
                   isActive
                     ? "bg-brand-subtle"
-                    : "hover:bg-bg-tertiary",
-                  isSurge && !isActive && "border border-surge-subtle bg-surge-subtle/20"
+                    : "hover:bg-bg-tertiary"
                 )}
               >
                 <div className="flex justify-between items-start mb-1">
@@ -105,18 +104,14 @@ export function Sidebar({ onDistrictSelect, selectedDistrictId }: SidebarProps) 
                   </DataBadge>
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-text-secondary mt-2">
-                  <span className="flex items-center gap-1">
-                    <Activity className="h-3 w-3 text-community" />
-                    {district.symptom_reports_today ?? 0} Reports
-                  </span>
-                  {isSurge && (
+                {isSurge && (
+                  <div className="flex items-center justify-between text-xs text-text-secondary mt-2">
                     <span className="flex items-center gap-1 text-surge">
                       <AlertTriangle className="h-3 w-3" />
                       Surge Alert
                     </span>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             );
           })

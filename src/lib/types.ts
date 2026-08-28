@@ -149,6 +149,7 @@ export interface DistrictDetail extends DistrictListItem {
     windSpeed: number;
     precipitation: number;
   };
+  hourly_forecast?: { time: string; temp: number }[];
 }
 
 export interface SymptomReportSummary {

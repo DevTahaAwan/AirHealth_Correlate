@@ -108,16 +108,7 @@ export function DistrictDetailDrawer({
                   </div>
                 )}
 
-                {/* Weather Context Badge */}
-                {district.rain_expected && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-3 shadow-sm">
-                    <span className="text-xl">🌧️</span>
-                    <div>
-                      <h4 className="text-sm font-semibold text-blue-900">Weather Context</h4>
-                      <p className="text-xs text-blue-800 mt-0.5">Rain Expected: AQI improvements likely.</p>
-                    </div>
-                  </div>
-                )}
+
 
                 {/* 2. Safe Exposure Time & AirQ+ Risk */}
                 <div className="border border-border-default rounded-lg p-4 bg-bg-primary space-y-4">
@@ -173,27 +164,55 @@ export function DistrictDetailDrawer({
                       <span className="text-sm text-text-secondary">Fetching weather context...</span>
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-text-primary">
-                          Temperature: <span className="font-normal text-text-secondary">🌡️ {district.weather.temperature}°C</span>
-                        </span>
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-text-primary">
+                            Temperature: <span className="font-normal text-text-secondary">🌡️ {district.weather.temperature}°C</span>
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-text-primary">
+                            Wind: <span className="font-normal text-text-secondary">💨 {district.weather.windSpeed} km/h {district.weather.windSpeed > 10 ? "- Breeze actively dispersing smog" : ""}</span>
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-text-primary">
+                            Rain: <span className="font-normal text-text-secondary">🌧️ {district.weather.precipitation}mm expected</span>
+                          </span>
+                        </div>
                       </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-text-primary">
-                          Wind: <span className="font-normal text-text-secondary">💨 {district.weather.windSpeed} km/h {district.weather.windSpeed > 10 ? "- Breeze actively dispersing smog" : ""}</span>
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-text-primary">
-                          Rain: <span className="font-normal text-text-secondary">🌧️ {district.weather.precipitation}mm expected</span>
-                        </span>
-                      </div>
+
+                      {/* 24-Hour Forecast */}
+                      {district.hourly_forecast && district.hourly_forecast.length > 0 && (
+                        <div className="mt-2 pt-4 border-t border-border-subtle">
+                          <h4 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-3">24-Hour Forecast</h4>
+                          <div className="flex overflow-x-auto pb-2 gap-3 snap-x scrollbar-hide">
+                            {district.hourly_forecast.map((forecast, idx) => (
+                              <div key={idx} className="flex flex-col items-center flex-shrink-0 snap-start bg-bg-secondary border border-border-default rounded-lg px-3 py-2 min-w-[70px]">
+                                <span className="text-xs text-text-secondary mb-1">{forecast.time}</span>
+                                <span className="text-sm font-bold text-text-primary">{forecast.temp}°C</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
+
+                {/* Weather Context Badge (Moved here) */}
+                {district.rain_expected && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-3 shadow-sm">
+                    <span className="text-xl">🌧️</span>
+                    <div>
+                      <h4 className="text-sm font-semibold text-blue-900">Weather Context</h4>
+                      <p className="text-xs text-blue-800 mt-0.5">Rain Expected: AQI improvements likely.</p>
+                    </div>
+                  </div>
+                )}
 
                 {/* 3. Community Signal (Symptom Summary) */}
                 <div>

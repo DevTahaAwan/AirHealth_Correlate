@@ -8,7 +8,6 @@ import { SurgeAdvisoryBanner } from "@/components/ui/surge-advisory-banner";
 import { DistrictDetailDrawer } from "@/components/features/district-detail-drawer";
 import { SymptomReportModal } from "@/components/features/symptom-report-modal";
 import { DistrictListItem, SurgeFlagItem, DistrictDetail, SafeTimeResult } from "@/lib/types";
-import { getNearestDistrict } from "@/lib/utils/geolocation";
 import { MapPin } from "lucide-react";
 
 export default function DashboardPage() {
@@ -51,19 +50,48 @@ export default function DashboardPage() {
   // Auto-detect location on mount if permitted, or prompt
   useEffect(() => {
     handleDetectLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleDetectLocation = async () => {
+  const handleDetectLocation = () => {
     setIsDetectingLocation(true);
     setLocationError(null);
     try {
-      const nearest = await getNearestDistrict();
-      if (nearest) {
-        setSelectedDistrictId(nearest.district_id);
+      if (!navigator.geolocation) {
+        setLocationError("Geolocation is not supported");
+        setIsDetectingLocation(false);
+        return;
       }
+      
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const { latitude, longitude } = pos.coords;
+        let nearestId: string | null = null;
+        let minDistance = Infinity;
+
+        districts.forEach(d => {
+          const lat2 = d.centroid_lat;
+          const lon2 = d.centroid_lng;
+          // Simple Pythagorean for coordinate distance
+          const dist = Math.sqrt(Math.pow(latitude - lat2, 2) + Math.pow(longitude - lon2, 2));
+          if (dist < minDistance) {
+            minDistance = dist;
+            nearestId = d.district_id;
+          }
+        });
+
+        if (nearestId) {
+          setSelectedDistrictId(nearestId);
+        } else {
+          setLocationError("Could not find a nearby district.");
+        }
+        setIsDetectingLocation(false);
+      }, () => {
+        setLocationError("Location access denied.");
+        setIsDetectingLocation(false);
+      });
+      
     } catch {
-      // Silently fail if location access is denied or errors out
-    } finally {
+      setLocationError("Location access failed.");
       setIsDetectingLocation(false);
     }
   };
