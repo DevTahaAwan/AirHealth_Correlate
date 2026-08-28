@@ -29,11 +29,10 @@ export async function GET(request: Request) {
 
   const supabase = getSupabaseAdmin();
   
-  // 2. Fetch all active stations from Supabase
+  // 2. Fetch all stations from Supabase
   const { data: stations, error: stationsError } = await supabase
     .from("stations")
-    .select("id, district_id, external_station_id, name")
-    .eq("is_active", true);
+    .select("id, district_id, external_station_id, name");
 
   if (stationsError || !stations) {
     return NextResponse.json(
@@ -126,57 +125,61 @@ export async function GET(request: Request) {
     }, { status: 200 });
   }
 
-  // 5. Process each station
-  for (const station of stations) {
-    // Find the offset from our mock data based on district ID
+  // 5. Process each station in bulk
+  const ingestedAt = new Date().toISOString();
+  
+  const aqiReadingsPayload = stations.map(station => {
     const districtMock = mockDistricts.find(d => d.id === station.district_id);
     const offset = districtMock?.baseAqiOffset || 1.0;
     
-    // Apply offset for this specific station's reading
-    const stationAqi = Math.max(0, Math.round(baseAqi * offset));
-    const stationPm25 = basePm25 !== null ? Math.max(0, Number((basePm25 * offset).toFixed(2))) : null;
-    const stationPm10 = basePm10 !== null ? Math.max(0, Number((basePm10 * offset).toFixed(2))) : null;
+    return {
+      station_id: station.id,
+      source: "aqicn",
+      is_fallback_reading: !fetchSuccess,
+      aqi_value: Math.max(0, Math.round(baseAqi * offset)),
+      pm25_value: basePm25 !== null ? Math.max(0, Number((basePm25 * offset).toFixed(2))) : null,
+      pm10_value: basePm10 !== null ? Math.max(0, Number((basePm10 * offset).toFixed(2))) : null,
+      recorded_at: baseTime,
+      ingested_at: ingestedAt
+    };
+  });
 
-    // Insert reading
-    const { data: reading, error: readingError } = await supabase
-      .from("aqi_readings")
-      .insert([{
-        station_id: station.id,
-        source: "aqicn",
-        is_fallback_reading: !fetchSuccess,
-        aqi_value: stationAqi,
-        pm25_value: stationPm25,
-        pm10_value: stationPm10,
-        recorded_at: baseTime,
-        ingested_at: new Date().toISOString()
-      }])
-      .select("id")
-      .single();
+  const { data: readings, error: readingsError } = await supabase
+    .from("aqi_readings")
+    .insert(aqiReadingsPayload)
+    .select("id, station_id");
 
-    // Log the result for this station
+  if (readingsError) {
+    console.error("Bulk insert into aqi_readings failed:", readingsError);
+  }
+
+  const resultPayloads = stations.map(station => {
+    const reading = readings?.find(r => r.station_id === station.id);
     let status = "failed";
-    if (!readingError && reading) {
-       status = fetchSuccess ? "success" : "fallback_used";
-       if (status === "success") successCount++;
-       else fallbackCount++;
+    if (!readingsError && reading) {
+      status = fetchSuccess ? "success" : "fallback_used";
+      if (status === "success") successCount++;
+      else fallbackCount++;
     } else {
-       failCount++;
-       // If unique constraint violated (already fetched for this hour), treat as success for counts
-       if (readingError?.code === '23505') {
-          status = "success";
-          successCount++;
-          failCount--;
-       }
+      failCount++;
+      // If unique constraint violated (already fetched for this hour), treat as success for counts
+      if (readingsError?.code === '23505') {
+         status = "success";
+         successCount++;
+         failCount--;
+      }
     }
-
-    await supabase.from("ingestion_run_station_results").insert([{
+    
+    return {
       ingestion_run_id: runId,
       station_id: station.id,
       status: status,
       aqi_reading_id: reading?.id || null,
-      error_message: readingError?.message || null
-    }]);
-  }
+      error_message: readingsError?.message || null
+    };
+  });
+
+  await supabase.from("ingestion_run_station_results").insert(resultPayloads);
 
   // 6. Update the run record
   await supabase
