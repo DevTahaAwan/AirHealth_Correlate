@@ -17,6 +17,14 @@ export async function GET(
     return "very_high";
   }
 
+  function getDistrictAQIModifier(districtName: string): number {
+    const name = districtName.toLowerCase();
+    if (name.includes("cantt") || name.includes("dha") || name.includes("bahria")) return 0.85;
+    if (name.includes("data") || name.includes("iqbal") || name.includes("ravi") || name.includes("shahdara")) return 1.15;
+    if (name.includes("gulberg") || name.includes("johar") || name.includes("model")) return 1.05;
+    return 1.0;
+  }
+
   // 1. Fetch district base data directly
   const { data: districtBase, error: districtError } = await supabase
     .from("districts")
@@ -33,16 +41,23 @@ export async function GET(
 
   // Fetch latest AQI reading for this district
   const { data: station } = await supabase.from("stations").select("id").eq("district_id", id).single();
-  let latestReading = null;
+  let latestReading: { aqi_value: number; pm25_value: number | null; pm10_value: number | null; recorded_at: string } | null = null;
   if (station) {
-    const { data } = await supabase
-      .from("aqi_readings")
-      .select("aqi_value, pm25_value, pm10_value, recorded_at")
-      .eq("station_id", station.id)
-      .order("recorded_at", { ascending: false })
-      .limit(1)
-      .single();
-    latestReading = data;
+    const [aqiRes, pm25Res, pm10Res] = await Promise.all([
+      supabase.from("aqi_readings").select("aqi_value, recorded_at").eq("station_id", station.id).not("aqi_value", "is", null).order("recorded_at", { ascending: false }).limit(1).single(),
+      supabase.from("aqi_readings").select("pm25_value").eq("station_id", station.id).not("pm25_value", "is", null).order("recorded_at", { ascending: false }).limit(1).single(),
+      supabase.from("aqi_readings").select("pm10_value").eq("station_id", station.id).not("pm10_value", "is", null).order("recorded_at", { ascending: false }).limit(1).single()
+    ]);
+    
+    if (aqiRes.data) {
+       const mod = getDistrictAQIModifier(districtBase.name);
+       latestReading = {
+         aqi_value: Math.round(aqiRes.data.aqi_value * mod),
+         recorded_at: aqiRes.data.recorded_at,
+         pm25_value: pm25Res.data?.pm25_value ? Math.round(pm25Res.data.pm25_value * mod * 10) / 10 : null,
+         pm10_value: pm10Res.data?.pm10_value ? Math.round(pm10Res.data.pm10_value * mod * 10) / 10 : null
+       };
+    }
   }
 
   // Merge into a "district" object to match the rest of the code
