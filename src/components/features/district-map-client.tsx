@@ -139,7 +139,7 @@ export function DistrictMapClient({
                 url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
               />
               <TileLayer
-                url="https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png"
               />
             </LayerGroup>
           </LayersControl.BaseLayer>
@@ -189,8 +189,17 @@ export function DistrictMapClient({
                 click: () => onDistrictSelect(district.district_id),
               }}
             >
-              <Tooltip direction="top" sticky className="font-inter font-medium text-sm">
-                {district.name} - AQI: {district.aqi ?? 'Pending'}
+              <Tooltip 
+                direction="top" 
+                sticky 
+                opacity={1}
+                className="font-inter bg-white text-slate-800 p-2 px-3 rounded-2xl shadow-xl border border-slate-200 text-sm font-semibold !whitespace-nowrap"
+              >
+                <div className="flex items-center gap-2">
+                  <span>{district.name}</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                  <span className="text-brand">AQI: {district.aqi ?? 'Pending'}</span>
+                </div>
               </Tooltip>
             </CircleMarker>
           );

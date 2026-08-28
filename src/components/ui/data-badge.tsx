@@ -23,13 +23,13 @@ export function DataBadge({ type, riskTier, children, className, icon }: DataBad
         if (!riskTier) return "bg-gray-100 text-gray-800";
         switch (riskTier) {
           case "low":
-            return "bg-risk-bg-low text-risk-low border-risk-bg-low";
+            return "bg-risk-bg-low text-white border-risk-bg-low";
           case "moderate":
-            return "bg-risk-bg-moderate text-risk-moderate border-risk-bg-moderate";
+            return "bg-risk-bg-moderate text-white border-risk-bg-moderate";
           case "high":
-            return "bg-risk-bg-high text-risk-high border-risk-bg-high";
+            return "bg-risk-bg-high text-white border-risk-bg-high";
           case "very_high":
-            return "bg-risk-bg-very-high text-risk-very-high border-risk-bg-very-high";
+            return "bg-risk-bg-very-high text-white border-risk-bg-very-high";
         }
       case "outline":
         return "bg-transparent border-border-default text-text-secondary";

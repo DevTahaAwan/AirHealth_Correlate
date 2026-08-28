@@ -49,16 +49,18 @@ export default function DashboardPage() {
 
   // Auto-detect location on mount if permitted, or prompt
   useEffect(() => {
-    handleDetectLocation();
+    handleDetectLocation(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleDetectLocation = () => {
-    setIsDetectingLocation(true);
-    setLocationError(null);
+  const handleDetectLocation = (isAuto = false) => {
+    if (!isAuto) {
+      setIsDetectingLocation(true);
+      setLocationError(null);
+    }
     try {
       if (!navigator.geolocation) {
-        setLocationError("Geolocation is not supported");
+        if (!isAuto) setLocationError("Geolocation is not supported");
         setIsDetectingLocation(false);
         return;
       }
@@ -81,17 +83,18 @@ export default function DashboardPage() {
 
         if (nearestId) {
           setSelectedDistrictId(nearestId);
+          setLocationError(null);
         } else {
-          setLocationError("Could not find a nearby district.");
+          if (!isAuto) setLocationError("Could not find a nearby district.");
         }
         setIsDetectingLocation(false);
       }, () => {
-        setLocationError("Location access denied.");
+        if (!isAuto) setLocationError("Location access denied.");
         setIsDetectingLocation(false);
       });
       
     } catch {
-      setLocationError("Location access failed.");
+      if (!isAuto) setLocationError("Location access failed.");
       setIsDetectingLocation(false);
     }
   };
@@ -182,7 +185,7 @@ export default function DashboardPage() {
             {/* Location Detection Button (if error or manual trigger) */}
             <div className="pointer-events-auto flex flex-col items-center">
               <button 
-                onClick={() => handleDetectLocation()}
+                onClick={() => handleDetectLocation(false)}
                 disabled={isDetectingLocation}
                 className="bg-bg-secondary text-text-primary shadow-elevated rounded-full px-4 py-2 text-sm font-semibold flex items-center gap-2 hover:bg-bg-tertiary transition-colors disabled:opacity-50"
               >
