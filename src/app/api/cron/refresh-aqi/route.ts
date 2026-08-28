@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/client";
-import { mockDistricts } from "@/data/districts";
 
 // Define a type for the AQICN API response
 interface AqicnResponse {
@@ -135,6 +134,29 @@ export async function GET(request: Request) {
     }
   }
 
+  // 4c. Data Fallback (Prevent "N/A" and Wild Fluctuations)
+  const { data: lastReading } = await supabase
+    .from("aqi_readings")
+    .select("aqi_value, pm25_value, pm10_value")
+    .order("recorded_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (lastReading) {
+    if (basePm25 === null || basePm25 === undefined) {
+      basePm25 = lastReading.pm25_value;
+    }
+    if (basePm10 === null || basePm10 === undefined) {
+      basePm10 = lastReading.pm10_value;
+    }
+    if (lastReading.aqi_value && (lastReading.aqi_value - baseAqi > 100)) {
+      console.warn(`AQI dropped by >100 points (from ${lastReading.aqi_value} to ${baseAqi}). Rejecting new reading.`);
+      baseAqi = lastReading.aqi_value;
+      basePm25 = lastReading.pm25_value;
+      basePm10 = lastReading.pm10_value;
+    }
+  }
+
   // If the data is stale, abort early — do not insert stale readings
   if (staleDataSkipped) {
     await supabase
@@ -161,17 +183,29 @@ export async function GET(request: Request) {
   // 5. Process each station in bulk
   const ingestedAt = new Date().toISOString();
   
+  const districtModifiers: Record<string, number> = {
+    'ravi-town': 1.15,
+    'wagah-town': 1.10,
+    'iqbal-town': 1.05,
+    'data-gunj-bakhsh-town': 1.05,
+    'samanabad-town': 1.02,
+    'gulberg-town': 1.0,
+    'johar-town': 0.98,
+    'dha-lahore': 0.95,
+    'model-town': 0.90,
+    'cantt': 0.85,
+  };
+
   const aqiReadingsPayload = stations.map(station => {
-    const districtMock = mockDistricts.find(d => d.id === station.district_id);
-    const offset = districtMock?.baseAqiOffset || 1.0;
+    const offset = districtModifiers[station.district_id] ?? 1.0;
     
     return {
       station_id: station.id,
       source: "aqicn",
       is_fallback_reading: !fetchSuccess,
       aqi_value: Math.max(0, Math.round(baseAqi * offset)),
-      pm25_value: basePm25 !== null ? Math.max(0, Number((basePm25 * offset).toFixed(2))) : null,
-      pm10_value: basePm10 !== null ? Math.max(0, Number((basePm10 * offset).toFixed(2))) : null,
+      pm25_value: basePm25 !== null ? Math.max(0, Math.round(basePm25 * offset * 100) / 100) : null,
+      pm10_value: basePm10 !== null ? Math.max(0, Math.round(basePm10 * offset * 100) / 100) : null,
       recorded_at: baseTime,
       ingested_at: ingestedAt
     };

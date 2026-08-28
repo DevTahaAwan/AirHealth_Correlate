@@ -189,7 +189,7 @@ export function DistrictMapClient({
                 click: () => onDistrictSelect(district.district_id),
               }}
             >
-              <Tooltip direction="top" sticky>{district.name} - AQI: {district.aqi_value ?? 'Pending'}</Tooltip>
+              <Tooltip direction="top" opacity={1} sticky>{district.name} - AQI: {district.aqi_value ?? 'Pending'}</Tooltip>
             </CircleMarker>
           );
         })}
