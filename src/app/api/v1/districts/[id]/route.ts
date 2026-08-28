@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/client";
-import { ApiResponse, DistrictDetail, SymptomType, SymptomReportSummary } from "@/lib/types";
+import { ApiResponse, DistrictDetail, SymptomType, SymptomReportSummary, RiskTier } from "@/lib/types";
 
 export async function GET(
   request: Request,
@@ -10,19 +10,54 @@ export async function GET(
   const id = params.id;
   const supabase = getSupabaseAdmin();
 
-  // 1. Fetch district base data and current AQI from view
-  const { data: district, error: districtError } = await supabase
-    .from("v_district_current_status")
+  function getRiskTier(aqi: number) {
+    if (aqi <= 50) return "low";
+    if (aqi <= 100) return "moderate";
+    if (aqi <= 150) return "high";
+    return "very_high";
+  }
+
+  // 1. Fetch district base data directly
+  const { data: districtBase, error: districtError } = await supabase
+    .from("districts")
     .select("*")
-    .eq("district_id", id)
+    .eq("id", id)
     .single();
 
-  if (districtError || !district) {
+  if (districtError || !districtBase) {
     return NextResponse.json(
       { success: false, error: { code: "NOT_FOUND", message: "District not found" } },
       { status: 404 }
     );
   }
+
+  // Fetch latest AQI reading for this district
+  const { data: station } = await supabase.from("stations").select("id").eq("district_id", id).single();
+  let latestReading = null;
+  if (station) {
+    const { data } = await supabase
+      .from("aqi_readings")
+      .select("aqi_value, pm25_value, recorded_at")
+      .eq("station_id", station.id)
+      .order("recorded_at", { ascending: false })
+      .limit(1)
+      .single();
+    latestReading = data;
+  }
+
+  // Merge into a "district" object to match the rest of the code
+  const district = {
+    district_id: districtBase.id,
+    name: districtBase.name,
+    slug: districtBase.slug,
+    centroid_lat: districtBase.centroid_lat,
+    centroid_lng: districtBase.centroid_lng,
+    current_aqi: latestReading?.aqi_value ?? null,
+    current_pm25: latestReading?.pm25_value ?? null,
+    last_updated: latestReading?.recorded_at ?? null,
+    current_risk_tier: latestReading ? getRiskTier(latestReading.aqi_value) : "low",
+    today_symptom_count: 0
+  };
 
   // 2. Fetch today's symptom aggregates
   const today = new Date().toISOString().split('T')[0];
@@ -105,7 +140,7 @@ export async function GET(
     slug: district.slug,
     aqi: district.current_aqi || null,
     pm25: district.current_pm25 || null,
-    risk_tier: district.current_risk_tier || "low",
+    risk_tier: (district.current_risk_tier || "low") as RiskTier,
     symptom_reports_today: district.today_symptom_count || 0,
     has_aqi_data: district.current_aqi !== null,
     last_updated: district.last_updated || null,

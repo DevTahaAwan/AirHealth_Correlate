@@ -6,6 +6,7 @@ import { X, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { getDeviceId } from "@/lib/utils/device-id";
 import { SymptomType } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 const SYMPTOMS: { id: SymptomType; label: string }[] = [
   { id: "coughing", label: "Coughing" },
@@ -33,6 +34,7 @@ export function SymptomReportModal({
   const [selectedSymptoms, setSelectedSymptoms] = useState<SymptomType[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const toggleSymptom = (symptom: SymptomType) => {
     setSelectedSymptoms((prev) =>
@@ -73,6 +75,7 @@ export function SymptomReportModal({
         throw new Error(json.error?.message || "Failed to submit report");
       }
 
+      router.refresh();
       onSuccess();
       setTimeout(() => {
         onClose();

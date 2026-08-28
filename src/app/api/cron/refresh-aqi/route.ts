@@ -102,6 +102,39 @@ export async function GET(request: Request) {
     console.error("Failed to fetch AQICN data:", error);
   }
 
+  // 4b. Fallback to IQAir API if AQICN failed or returned stale data
+  if (!fetchSuccess) {
+    try {
+      const iqairKey = process.env.IQAIR_API_KEY;
+      if (iqairKey) {
+        console.log("Attempting IQAir fallback fetch...");
+        const res = await fetch(`https://api.airvisual.com/v2/city?city=Lahore&state=Punjab&country=Pakistan&key=${iqairKey}`);
+        const json = await res.json();
+
+        if (json.status === "success" && json.data?.current?.pollution) {
+          const pollution = json.data.current.pollution;
+          baseAqi = pollution.aqius;
+          basePm25 = null; // Free IQAir API might not provide direct concentrations reliably, rely on AQI
+          basePm10 = null;
+          
+          if (pollution.ts) {
+            baseTime = new Date(pollution.ts).toISOString();
+          } else {
+            baseTime = new Date().toISOString();
+          }
+          
+          fetchSuccess = true;
+          staleDataSkipped = false; // We got fresh fallback data, don't abort
+          console.log("IQAir fallback successful. AQI:", baseAqi);
+        } else {
+          console.error("IQAir fallback failed with status:", json.status);
+        }
+      }
+    } catch (fallbackError) {
+      console.error("Failed to fetch IQAir fallback data:", fallbackError);
+    }
+  }
+
   // If the data is stale, abort early — do not insert stale readings
   if (staleDataSkipped) {
     await supabase

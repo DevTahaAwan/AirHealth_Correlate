@@ -1,33 +1,65 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/client";
-import { ApiResponse, DistrictListItem } from "@/lib/types";
+import { ApiResponse, DistrictListItem, RiskTier } from "@/lib/types";
 
 export async function GET() {
   const supabase = getSupabaseAdmin();
   
-  // Fetch all districts to ensure we don't miss any due to inner joins in the view
+  function getRiskTier(aqi: number) {
+    if (aqi <= 50) return "low";
+    if (aqi <= 100) return "moderate";
+    if (aqi <= 150) return "high";
+    return "very_high";
+  }
+
   const { data: allDistricts, error: distError } = await supabase
     .from("districts")
     .select("*");
 
-  const { data: statusData, error: statError } = await supabase
-    .from("v_district_current_status")
-    .select("*");
-
-  console.log("Supabase districts fetch result:", { allDistricts: allDistricts?.length, statusData: statusData?.length });
-
-  if (distError || statError || !allDistricts) {
+  if (distError || !allDistricts) {
     return NextResponse.json(
       { success: false, error: { code: "SERVER_ERROR", message: "Failed to fetch districts" } },
       { status: 500 }
     );
   }
 
-  // Create a map for quick lookup
+  const { data: stations } = await supabase.from("stations").select("id, district_id");
   const statusMap = new Map();
-  if (statusData) {
-    statusData.forEach(d => {
-      statusMap.set(d.district_id, d);
+
+  if (stations && stations.length > 0) {
+    await Promise.all(
+      stations.map(async (station) => {
+        const { data: latestReading } = await supabase
+          .from("aqi_readings")
+          .select("aqi_value, pm25_value, recorded_at")
+          .eq("station_id", station.id)
+          .order("recorded_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (latestReading) {
+          statusMap.set(station.district_id, {
+            current_aqi: latestReading.aqi_value,
+            current_pm25: latestReading.pm25_value,
+            last_updated: latestReading.recorded_at,
+            current_risk_tier: getRiskTier(latestReading.aqi_value),
+          });
+        }
+      })
+    );
+  }
+
+  const today = new Date().toISOString().split("T")[0];
+  const { data: aggregates } = await supabase
+    .from("district_symptom_daily_aggregates")
+    .select("district_id, report_count")
+    .eq("report_date", today);
+
+  if (aggregates) {
+    aggregates.forEach(agg => {
+      const existing = statusMap.get(agg.district_id) || {};
+      existing.today_symptom_count = (existing.today_symptom_count || 0) + agg.report_count;
+      statusMap.set(agg.district_id, existing);
     });
   }
 
@@ -41,7 +73,7 @@ export async function GET() {
       slug: d.slug,
       aqi: status.current_aqi || null,
       pm25: status.current_pm25 || null,
-      risk_tier: status.current_risk_tier || "low",
+      risk_tier: (status.current_risk_tier || "low") as RiskTier,
       symptom_reports_today: status.today_symptom_count || 0,
       has_aqi_data: status.current_aqi != null,
       last_updated: status.last_updated || null,

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { DistrictDetail, SafeTimeResult } from "@/lib/types";
 import { DataBadge } from "@/components/ui/data-badge";
 import { CorrelationChart } from "./correlation-chart";
+import { calculateRespiratoryRisk } from "@/lib/utils/airq-calculator";
 
 interface DistrictDetailDrawerProps {
   district: DistrictDetail | null;
@@ -26,6 +27,7 @@ export function DistrictDetailDrawer({
   if (!isOpen) return null;
 
   const isSurge = district?.risk_tier === "very_high";
+  const respiratoryRisk = district?.pm25 != null ? calculateRespiratoryRisk(district.pm25) : null;
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -63,46 +65,48 @@ export function DistrictDetailDrawer({
             ) : (
               <>
                 {/* 1. Risk Tier Hero */}
-                <div
-                  className={cn(
-                    "rounded-xl p-5 text-white shadow-sm",
-                    // Fix 4: Safely fall back to a neutral style when AQI is null
-                    district.aqi == null
-                      ? "bg-slate-500"
-                      : district.risk_tier === "low"
-                      ? "bg-risk-low"
-                      : district.risk_tier === "moderate"
-                      ? "bg-risk-moderate"
-                      : district.risk_tier === "high"
-                      ? "bg-risk-high"
-                      : "bg-risk-very-high surge-pulse-gradient"
-                  )}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="uppercase tracking-wider text-xs font-semibold opacity-90">
-                      Air Quality Index
-                    </span>
-                    <DataBadge type="estimated" className="bg-white/20 text-white border-white/10">
-                      {district.aqi != null ? "Measured" : "Pending"}
-                    </DataBadge>
+                {district.aqi == null ? (
+                  <div className="rounded-xl p-5 bg-slate-500 text-white shadow-sm flex flex-col items-center justify-center py-10">
+                    <Activity className="h-8 w-8 animate-pulse mb-3 opacity-70" />
+                    <h3 className="text-xl font-bold mb-1">Sensor Data Syncing...</h3>
+                    <p className="text-sm opacity-80 text-center">
+                      We are currently fetching the latest air quality readings for this district.
+                    </p>
                   </div>
-                  <div className="flex items-end gap-2 mb-4">
-                    <span className="text-5xl font-black leading-none tracking-tighter">
-                      {/* Fix 4: Show "--" placeholder when AQI not yet available */}
-                      {district.aqi ?? "--"}
-                    </span>
-                    <span className="text-lg font-medium opacity-90 mb-1">
-                      {district.aqi != null
-                        ? (district.risk_tier || "low").replace("_", " ").toUpperCase()
-                        : "DATA PENDING"}
-                    </span>
+                ) : (
+                  <div
+                    className={cn(
+                      "rounded-xl p-5 text-white shadow-sm",
+                      district.risk_tier === "low"
+                        ? "bg-risk-low"
+                        : district.risk_tier === "moderate"
+                        ? "bg-risk-moderate"
+                        : district.risk_tier === "high"
+                        ? "bg-risk-high"
+                        : "bg-risk-very-high surge-pulse-gradient"
+                    )}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="uppercase tracking-wider text-xs font-semibold opacity-90">
+                        Air Quality Index
+                      </span>
+                      <DataBadge type="estimated" className="bg-white/20 text-white border-white/10">
+                        Measured
+                      </DataBadge>
+                    </div>
+                    <div className="flex items-end gap-2 mb-4">
+                      <span className="text-5xl font-black leading-none tracking-tighter">
+                        {district.aqi}
+                      </span>
+                      <span className="text-lg font-medium opacity-90 mb-1">
+                        {(district.risk_tier || "low").replace("_", " ").toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="text-sm opacity-95 leading-relaxed font-medium">
+                      {district.advisory_text}
+                    </p>
                   </div>
-                  <p className="text-sm opacity-95 leading-relaxed font-medium">
-                    {district.aqi != null
-                      ? district.advisory_text
-                      : "AQI data for this district has not been recorded yet. Please check back after the next sensor sync."}
-                  </p>
-                </div>
+                )}
 
                 {/* Weather Context Badge */}
                 {district.rain_expected && (
@@ -115,28 +119,49 @@ export function DistrictDetailDrawer({
                   </div>
                 )}
 
-                {/* 2. Safe Exposure Time Calculator */}
-                {safeTime && (
-                  <div className="border border-border-default rounded-lg p-4 bg-bg-primary">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Clock className="h-5 w-5 text-brand" />
-                      <h3 className="font-semibold text-text-primary">
-                        Safe Exposure Time
-                      </h3>
+                {/* 2. Safe Exposure Time & AirQ+ Risk */}
+                <div className="border border-border-default rounded-lg p-4 bg-bg-primary space-y-4">
+                  {safeTime && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Clock className="h-5 w-5 text-brand" />
+                        <h3 className="font-semibold text-text-primary">
+                          Safe Exposure Time
+                        </h3>
+                      </div>
+                      <div className="flex items-baseline gap-2 mb-2">
+                        <span className="text-3xl font-bold text-text-primary">
+                          {safeTime.safe_minutes >= 999 ? "Unlimited" : `${safeTime.safe_minutes} min`}
+                        </span>
+                      </div>
+                      <p className="text-xs text-text-secondary leading-relaxed">
+                        {safeTime.basis === "personal_health_profile"
+                          ? "Calculated based on your health profile conditions."
+                          : "Baseline estimate for general population."}{" "}
+                        {safeTime.disclaimer}
+                      </p>
                     </div>
-                    <div className="flex items-baseline gap-2 mb-2">
-                      <span className="text-3xl font-bold text-text-primary">
-                        {safeTime.safe_minutes >= 999 ? "Unlimited" : `${safeTime.safe_minutes} min`}
-                      </span>
+                  )}
+
+                  {respiratoryRisk != null && (
+                    <div className="pt-4 border-t border-border-subtle">
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <h3 className="font-semibold text-text-primary">Health Profile Risk</h3>
+                        <DataBadge type="estimated" className="text-[10px] bg-brand/10 text-brand border-brand/20">
+                          Uses WHO AirQ+ Methodology
+                        </DataBadge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-text-primary">
+                          Estimated Respiratory Risk:
+                        </span>
+                        <span className="font-bold text-brand bg-brand-subtle px-2 py-0.5 rounded-md">
+                          {respiratoryRisk}x higher than baseline
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-xs text-text-secondary leading-relaxed">
-                      {safeTime.basis === "personal_health_profile"
-                        ? "Calculated based on your health profile conditions."
-                        : "Baseline estimate for general population."}{" "}
-                      {safeTime.disclaimer}
-                    </p>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* Weather & Smog Context */}
                 <div className="border border-border-default rounded-lg p-4 bg-bg-primary">
