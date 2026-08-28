@@ -37,7 +37,7 @@ export async function GET(
   if (station) {
     const { data } = await supabase
       .from("aqi_readings")
-      .select("aqi_value, pm25_value, recorded_at")
+      .select("aqi_value, pm25_value, pm10_value, recorded_at")
       .eq("station_id", station.id)
       .order("recorded_at", { ascending: false })
       .limit(1)
@@ -54,6 +54,7 @@ export async function GET(
     centroid_lng: districtBase.centroid_lng,
     current_aqi: latestReading?.aqi_value ?? null,
     current_pm25: latestReading?.pm25_value ?? null,
+    current_pm10: latestReading?.pm10_value ?? null,
     last_updated: latestReading?.recorded_at ?? null,
     current_risk_tier: latestReading ? getRiskTier(latestReading.aqi_value) : "low",
     today_symptom_count: 0
@@ -155,7 +156,10 @@ export async function GET(
     name: district.name,
     slug: district.slug,
     aqi: district.current_aqi || null,
+    aqi_value: district.current_aqi || null,
     pm25: district.current_pm25 || null,
+    pm25_value: district.current_pm25 || null,
+    pm10_value: district.current_pm10 || null,
     risk_tier: (district.current_risk_tier || "low") as RiskTier,
     symptom_reports_today: district.today_symptom_count || 0,
     has_aqi_data: district.current_aqi !== null,

@@ -110,7 +110,28 @@ export function DistrictDetailDrawer({
 
 
 
+                {/* Detailed Air Quality Breakdown */}
+                <div className="border border-border-default rounded-lg p-4 bg-bg-primary">
+                  <h3 className="font-semibold text-text-primary mb-3">
+                    Detailed Air Quality Breakdown
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-bg-tertiary p-3 rounded-lg border-l-4 border-brand">
+                      <p className="text-xs text-text-secondary mb-1">PM2.5</p>
+                      <p className="text-lg font-bold text-text-primary">{district.pm25_value ?? 'N/A'} µg/m³</p>
+                    </div>
+                    <div className="bg-bg-tertiary p-3 rounded-lg border-l-4 border-gray-400">
+                      <p className="text-xs text-text-secondary mb-1">PM10</p>
+                      <p className="text-lg font-bold text-text-primary">{district.pm10_value ?? 'N/A'} µg/m³</p>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-text-secondary mt-3 italic">
+                    Live telemetry aggregated via AQICN and OpenAQ.
+                  </p>
+                </div>
+
                 {/* 2. Safe Exposure Time & AirQ+ Risk */}
+                {(safeTime || respiratoryRisk != null) && (
                 <div className="border border-border-default rounded-lg p-4 bg-bg-primary space-y-4">
                   {safeTime && (
                     <div>
@@ -153,6 +174,7 @@ export function DistrictDetailDrawer({
                     </div>
                   )}
                 </div>
+                )}
 
                 {/* Weather & Smog Context */}
                 <div className="border border-border-default rounded-lg p-4 bg-bg-primary">
@@ -203,16 +225,6 @@ export function DistrictDetailDrawer({
                   )}
                 </div>
 
-                {/* Weather Context Badge (Moved here) */}
-                {district.rain_expected && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-3 shadow-sm">
-                    <span className="text-xl">🌧️</span>
-                    <div>
-                      <h4 className="text-sm font-semibold text-blue-900">Weather Context</h4>
-                      <p className="text-xs text-blue-800 mt-0.5">Rain Expected: AQI improvements likely.</p>
-                    </div>
-                  </div>
-                )}
 
                 {/* 3. Community Signal (Symptom Summary) */}
                 <div>

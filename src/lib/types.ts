@@ -129,7 +129,10 @@ export interface DistrictListItem {
   name: string;
   slug: string;
   aqi: number | null;
+  aqi_value?: number | null;
   pm25: number | null;
+  pm25_value?: number | null;
+  pm10_value?: number | null;
   risk_tier: RiskTier | null;
   symptom_reports_today: number;
   has_aqi_data: boolean;
