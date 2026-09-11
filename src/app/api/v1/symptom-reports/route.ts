@@ -73,6 +73,39 @@ export async function POST(request: Request) {
       throw error;
     }
 
+    // Update aggregate counts so the district detail API immediately reflects the new report
+    for (const symptom of symptoms) {
+      // Try to increment existing aggregate row, or insert a new one
+      const { data: existingAgg } = await supabase
+        .from("district_symptom_daily_aggregates")
+        .select("id, report_count, distinct_reporter_count")
+        .eq("district_id", district_id)
+        .eq("report_date", today)
+        .eq("symptom", symptom)
+        .single();
+
+      if (existingAgg) {
+        await supabase
+          .from("district_symptom_daily_aggregates")
+          .update({
+            report_count: existingAgg.report_count + 1,
+            distinct_reporter_count: existingAgg.distinct_reporter_count + 1,
+          })
+          .eq("id", existingAgg.id);
+      } else {
+        await supabase
+          .from("district_symptom_daily_aggregates")
+          .insert({
+            district_id,
+            report_date: today,
+            symptom,
+            report_count: 1,
+            distinct_reporter_count: 1,
+            suppressed: false,
+          });
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: data,

@@ -9,6 +9,7 @@ import { DistrictDetailDrawer } from "@/components/features/district-detail-draw
 import { SymptomReportModal } from "@/components/features/symptom-report-modal";
 import { DistrictListItem, SurgeFlagItem, DistrictDetail, SafeTimeResult } from "@/lib/types";
 import { MapPin } from "lucide-react";
+import { getNearestDistrictFromList } from "@/lib/utils/geolocation";
 
 export default function DashboardPage() {
   const [districts, setDistricts] = useState<DistrictListItem[]>([]);
@@ -67,29 +68,20 @@ export default function DashboardPage() {
       
       navigator.geolocation.getCurrentPosition((pos) => {
         const { latitude, longitude } = pos.coords;
-        let nearestId: string | null = null;
-        let minDistance = Infinity;
+        const nearest = getNearestDistrictFromList(latitude, longitude, districts);
 
-        districts.forEach(d => {
-          const lat2 = d.centroid_lat;
-          const lon2 = d.centroid_lng;
-          // Simple Pythagorean for coordinate distance
-          const dist = Math.sqrt(Math.pow(latitude - lat2, 2) + Math.pow(longitude - lon2, 2));
-          if (dist < minDistance) {
-            minDistance = dist;
-            nearestId = d.district_id;
-          }
-        });
-
-        if (nearestId) {
-          setSelectedDistrictId(nearestId);
+        if (nearest) {
+          setSelectedDistrictId(nearest.district_id);
           setLocationError(null);
         } else {
           if (!isAuto) setLocationError("Could not find a nearby district.");
         }
         setIsDetectingLocation(false);
-      }, () => {
-        if (!isAuto) setLocationError("Location access denied.");
+      }, (geoError) => {
+        if (geoError.code === geoError.PERMISSION_DENIED) {
+          window.alert("Location access is denied. Please enable location permissions in your browser or device settings, then try again.");
+        }
+        if (!isAuto) setLocationError("Location access denied. Please enable permissions in your browser settings.");
         setIsDetectingLocation(false);
       });
       

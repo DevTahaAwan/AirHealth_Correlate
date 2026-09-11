@@ -61,7 +61,10 @@ export default function ProfileSetupPage() {
       if (nearest) {
         setLocationName(nearest.name);
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof GeolocationPositionError && err.code === err.PERMISSION_DENIED) {
+        window.alert("Location access is denied. Please enable location permissions in your browser or device settings, then try again.");
+      }
       setLocationError("Failed to get location. Please enable location services or select a district manually.");
     } finally {
       setIsDetecting(false);

@@ -27,7 +27,8 @@ export function DistrictDetailDrawer({
   if (!isOpen) return null;
 
   const isSurge = district?.risk_tier === "very_high";
-  const respiratoryRisk = district?.pm25 != null ? calculateRespiratoryRisk(district.pm25) : null;
+  const effectivePm25 = district?.pm25 ?? (district?.aqi != null ? district.aqi * 0.7 : null);
+  const respiratoryRisk = effectivePm25 != null ? calculateRespiratoryRisk(effectivePm25) : null;
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -111,24 +112,38 @@ export function DistrictDetailDrawer({
 
 
                 {/* Detailed Air Quality Breakdown */}
-                <div className="border border-border-default rounded-lg p-4 bg-bg-primary">
-                  <h3 className="font-semibold text-text-primary mb-3">
-                    Detailed Air Quality Breakdown
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-bg-tertiary p-3 rounded-lg border-l-4 border-brand">
-                      <p className="text-xs text-text-secondary mb-1">PM2.5</p>
-                      <p className="text-lg font-bold text-text-primary">{district.pm25_value ?? 'N/A'} µg/m³</p>
+                {(() => {
+                  // Reverse-heuristic fallback: if pm25/pm10 are null but we have AQI, approximate to prevent "N/A"
+                  const displayPm25 = district.pm25_value ?? (district.aqi != null ? Math.round(district.aqi * 0.7) : null);
+                  const displayPm10 = district.pm10_value ?? (district.aqi != null ? Math.round(district.aqi * 1.1) : null);
+
+                  return (
+                    <div className="border border-border-default rounded-lg p-4 bg-bg-primary">
+                      <h3 className="font-semibold text-text-primary mb-3">
+                        Detailed Air Quality Breakdown
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-bg-tertiary p-3 rounded-lg border-l-4 border-brand">
+                          <p className="text-xs text-text-secondary mb-1">PM2.5</p>
+                          <p className="text-lg font-bold text-text-primary">{displayPm25 != null ? `${displayPm25} µg/m³` : 'N/A'}</p>
+                          {district.pm25_value == null && displayPm25 != null && (
+                            <p className="text-[9px] text-text-tertiary mt-1">≈ Estimated from AQI</p>
+                          )}
+                        </div>
+                        <div className="bg-bg-tertiary p-3 rounded-lg border-l-4 border-gray-400">
+                          <p className="text-xs text-text-secondary mb-1">PM10</p>
+                          <p className="text-lg font-bold text-text-primary">{displayPm10 != null ? `${displayPm10} µg/m³` : 'N/A'}</p>
+                          {district.pm10_value == null && displayPm10 != null && (
+                            <p className="text-[9px] text-text-tertiary mt-1">≈ Estimated from AQI</p>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-text-secondary mt-3 italic">
+                        Live telemetry aggregated via AQICN and OpenAQ.
+                      </p>
                     </div>
-                    <div className="bg-bg-tertiary p-3 rounded-lg border-l-4 border-gray-400">
-                      <p className="text-xs text-text-secondary mb-1">PM10</p>
-                      <p className="text-lg font-bold text-text-primary">{district.pm10_value ?? 'N/A'} µg/m³</p>
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-text-secondary mt-3 italic">
-                    Live telemetry aggregated via AQICN and OpenAQ.
-                  </p>
-                </div>
+                  );
+                })()}
 
                 {/* 2. Safe Exposure Time & AirQ+ Risk */}
                 {(safeTime || respiratoryRisk != null) && (
@@ -288,7 +303,7 @@ export function DistrictDetailDrawer({
                      Correlation between measured AQI and community symptom reports.
                    </p>
                    <div className="h-48 w-full -ml-2">
-                     <CorrelationChart districtId={district.district_id} />
+                     <CorrelationChart districtId={district.district_id} currentAqi={district.aqi} />
                    </div>
                 </div>
               </>
