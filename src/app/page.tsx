@@ -1,31 +1,26 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MapWrapper } from "@/components/features/map-wrapper";
 import { SurgeAdvisoryBanner } from "@/components/ui/surge-advisory-banner";
-import { DistrictDetailDrawer } from "@/components/features/district-detail-drawer";
 import { SymptomReportModal } from "@/components/features/symptom-report-modal";
-import { DistrictListItem, SurgeFlagItem, DistrictDetail, SafeTimeResult } from "@/lib/types";
+import { DistrictListItem, SurgeFlagItem } from "@/lib/types";
 import { MapPin } from "lucide-react";
 import { getNearestDistrictFromList } from "@/lib/utils/geolocation";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [districts, setDistricts] = useState<DistrictListItem[]>([]);
   const [surgeFlags, setSurgeFlags] = useState<SurgeFlagItem[]>([]);
   const [selectedDistrictId, setSelectedDistrictId] = useState<string | null>(null);
-  
-  const [districtDetail, setDistrictDetail] = useState<DistrictDetail | null>(null);
-  const [safeTime, setSafeTime] = useState<SafeTimeResult | null>(null);
-  const [isDrawerLoading, setIsDrawerLoading] = useState(false);
   
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
-
-  // const { isSignedIn } = useAuth(); // unused
 
   // Initial Data Fetch (Districts & Surge Flags)
   useEffect(() => {
@@ -91,71 +86,15 @@ export default function DashboardPage() {
     }
   };
 
-  // Fetch District Detail & Safe Time when selected
-  useEffect(() => {
-    if (!selectedDistrictId) {
-      setDistrictDetail(null);
-      setSafeTime(null);
-      return;
+  // Navigate to dedicated district page via router.push (SPA-like transition)
+  const handleDistrictSelect = (districtId: string) => {
+    const district = districts.find(d => d.district_id === districtId);
+    if (district) {
+      router.push(`/districts/${district.slug}`);
+    } else {
+      // Fallback: try to find by ID pattern
+      setSelectedDistrictId(districtId);
     }
-
-    async function fetchDetail() {
-      setIsDrawerLoading(true);
-      try {
-        // Get user profile modifiers
-        const conditionsStr = localStorage.getItem("airhealth_user_conditions");
-        const ageGroup = localStorage.getItem("airhealth_user_age") || "adult";
-        const exposure = localStorage.getItem("airhealth_user_exposure") || "mostly_indoors";
-        
-        let safeTimeUrl = `/api/v1/safe-time?district_id=${selectedDistrictId}&ageGroup=${ageGroup}&exposure=${exposure}`;
-        if (conditionsStr) {
-          try {
-            const conditions = JSON.parse(conditionsStr);
-            if (conditions.length > 0) {
-              safeTimeUrl += `&conditions=${conditions.join(",")}`;
-            }
-          } catch {
-            // Ignore parse errors
-          }
-        }
-
-        const [detailRes, safeRes] = await Promise.all([
-          fetch(`/api/v1/districts/${selectedDistrictId}`),
-          fetch(safeTimeUrl)
-        ]);
-
-        const detailJson = await detailRes.json();
-        const safeJson = await safeRes.json();
-
-        if (detailJson.success) {
-          const listMatch = districts.find(d => d.district_id === selectedDistrictId);
-          const merged = { ...detailJson.data };
-          if (listMatch) {
-            merged.aqi = listMatch.aqi;
-            merged.pm25 = listMatch.pm25;
-            merged.risk_tier = listMatch.risk_tier;
-            merged.has_aqi_data = listMatch.has_aqi_data;
-          }
-          setDistrictDetail(merged);
-        }
-        if (safeJson.success) setSafeTime(safeJson.data);
-      } catch (err) {
-        console.error("Failed to fetch district detail", err);
-      } finally {
-        setIsDrawerLoading(false);
-      }
-    }
-
-    fetchDetail();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDistrictId]);
-
-  const handleDistrictSelect = (id: string) => {
-    setSelectedDistrictId(id);
-  };
-
-  const closeDrawer = () => {
-    setSelectedDistrictId(null);
   };
 
   return (
@@ -163,7 +102,7 @@ export default function DashboardPage() {
       <Header />
       
       <div className="flex-1 flex overflow-hidden relative">
-        <Sidebar onDistrictSelect={handleDistrictSelect} selectedDistrictId={selectedDistrictId} />
+        <Sidebar selectedDistrictId={selectedDistrictId} />
         
         <main className="flex-1 relative flex flex-col z-0">
           {/* Absolute Surge Banner Floating Over Map */}
@@ -215,17 +154,9 @@ export default function DashboardPage() {
         </main>
       </div>
 
-      <DistrictDetailDrawer 
-        district={districtDetail}
-        safeTime={safeTime}
-        isOpen={selectedDistrictId !== null}
-        onClose={closeDrawer}
-        isLoading={isDrawerLoading}
-      />
-
       <SymptomReportModal
         districtId={selectedDistrictId || (districts[0]?.district_id || "")}
-        districtName={districtDetail?.name || "your area"}
+        districtName={districts.find(d => d.district_id === selectedDistrictId)?.name || "your area"}
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
         onSuccess={() => {
@@ -233,11 +164,6 @@ export default function DashboardPage() {
           fetch("/api/v1/districts").then(r => r.json()).then(j => {
             if (j.success) setDistricts(j.data);
           });
-          if (selectedDistrictId) {
-             fetch(`/api/v1/districts/${selectedDistrictId}`).then(r => r.json()).then(j => {
-              if (j.success) setDistrictDetail(j.data);
-            });
-          }
         }}
       />
     </div>

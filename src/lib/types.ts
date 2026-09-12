@@ -72,6 +72,10 @@ export interface AqiReading {
   aqi_value: number;
   pm25_value: number | null;
   pm10_value: number | null;
+  co: number | null;
+  so2: number | null;
+  no2: number | null;
+  o3: number | null;
   recorded_at: string;
   ingested_at: string;
 }
@@ -133,6 +137,10 @@ export interface DistrictListItem {
   pm25: number | null;
   pm25_value?: number | null;
   pm10_value?: number | null;
+  co: number | null;
+  so2: number | null;
+  no2: number | null;
+  o3: number | null;
   risk_tier: RiskTier | null;
   symptom_reports_today: number;
   has_aqi_data: boolean;
@@ -153,6 +161,11 @@ export interface DistrictDetail extends DistrictListItem {
     precipitation: number;
   };
   hourly_forecast?: { time: string; temp: number }[];
+  // Extended pollutant concentrations (for pollutant grid)
+  co_value?: number | null;
+  so2_value?: number | null;
+  no2_value?: number | null;
+  o3_value?: number | null;
 }
 
 export interface SymptomReportSummary {

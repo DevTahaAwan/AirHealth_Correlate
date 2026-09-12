@@ -10,6 +10,10 @@ interface AqicnResponse {
     iaqi: {
       pm25?: { v: number };
       pm10?: { v: number };
+      co?: { v: number };
+      so2?: { v: number };
+      no2?: { v: number };
+      o3?: { v: number };
     };
     time: {
       s: string; // "2023-11-20 08:00:00"
@@ -65,6 +69,10 @@ export async function GET(request: Request) {
   let baseAqi = 150; // Fallback default
   let basePm25: number | null = null;
   let basePm10: number | null = null;
+  let baseCo: number | null = null;
+  let baseSo2: number | null = null;
+  let baseNo2: number | null = null;
+  let baseO3: number | null = null;
   let baseTime = new Date().toISOString();
   let fetchSuccess = false;
   let staleDataSkipped = false;
@@ -78,6 +86,10 @@ export async function GET(request: Request) {
       baseAqi = json.data.aqi;
       basePm25 = json.data.iaqi?.pm25?.v ?? null;
       basePm10 = json.data.iaqi?.pm10?.v ?? null;
+      baseCo = json.data.iaqi?.co?.v ?? null;
+      baseSo2 = json.data.iaqi?.so2?.v ?? null;
+      baseNo2 = json.data.iaqi?.no2?.v ?? null;
+      baseO3 = json.data.iaqi?.o3?.v ?? null;
       
       // Parse the ISO timestamp from the response for age checking
       const isoString = json.data.time.iso || json.data.time.s;
@@ -137,7 +149,7 @@ export async function GET(request: Request) {
   // 4c. Data Fallback (Prevent "N/A" and Wild Fluctuations)
   const { data: lastReading } = await supabase
     .from("aqi_readings")
-    .select("aqi_value, pm25_value, pm10_value")
+    .select("aqi_value, pm25_value, pm10_value, co, so2, no2, o3")
     .order("recorded_at", { ascending: false })
     .limit(1)
     .single();
@@ -149,6 +161,11 @@ export async function GET(request: Request) {
     if (basePm10 === null || basePm10 === undefined) {
       basePm10 = lastReading.pm10_value;
     }
+    // Carry forward gas pollutants from last reading if not available
+    if (baseCo === null || baseCo === undefined) baseCo = lastReading.co;
+    if (baseSo2 === null || baseSo2 === undefined) baseSo2 = lastReading.so2;
+    if (baseNo2 === null || baseNo2 === undefined) baseNo2 = lastReading.no2;
+    if (baseO3 === null || baseO3 === undefined) baseO3 = lastReading.o3;
     if (lastReading.aqi_value && (lastReading.aqi_value - baseAqi > 100)) {
       console.warn(`AQI dropped by >100 points (from ${lastReading.aqi_value} to ${baseAqi}). Rejecting new reading.`);
       baseAqi = lastReading.aqi_value;
@@ -206,6 +223,10 @@ export async function GET(request: Request) {
       aqi_value: Math.max(0, Math.round(baseAqi * offset)),
       pm25_value: basePm25 !== null ? Math.max(0, Math.round(basePm25 * offset * 100) / 100) : null,
       pm10_value: basePm10 !== null ? Math.max(0, Math.round(basePm10 * offset * 100) / 100) : null,
+      co: baseCo,
+      so2: baseSo2,
+      no2: baseNo2,
+      o3: baseO3,
       recorded_at: baseTime,
       ingested_at: ingestedAt
     };

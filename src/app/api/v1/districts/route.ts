@@ -15,14 +15,6 @@ export async function GET() {
     return "very_high";
   }
 
-  function getDistrictAQIModifier(districtName: string): number {
-    const name = districtName.toLowerCase();
-    if (name.includes("cantt") || name.includes("dha") || name.includes("bahria")) return 0.85;
-    if (name.includes("data") || name.includes("iqbal") || name.includes("ravi") || name.includes("shahdara")) return 1.15;
-    if (name.includes("gulberg") || name.includes("johar") || name.includes("model")) return 1.05;
-    return 1.0;
-  }
-
   const { data: allDistricts, error: distError } = await supabase
     .from("districts")
     .select("*");
@@ -40,16 +32,26 @@ export async function GET() {
   if (stations && stations.length > 0) {
     await Promise.all(
       stations.map(async (station) => {
-        const [aqiRes, pm25Res] = await Promise.all([
-          supabase.from("aqi_readings").select("aqi_value, recorded_at").eq("station_id", station.id).not("aqi_value", "is", null).order("recorded_at", { ascending: false }).limit(1).single(),
-          supabase.from("aqi_readings").select("pm25_value").eq("station_id", station.id).not("pm25_value", "is", null).order("recorded_at", { ascending: false }).limit(1).single()
-        ]);
+        // Fetch the single most recent reading with all pollutant fields
+        const { data: latestReading } = await supabase
+          .from("aqi_readings")
+          .select("aqi_value, pm25_value, pm10_value, co, so2, no2, o3, recorded_at")
+          .eq("station_id", station.id)
+          .not("aqi_value", "is", null)
+          .order("recorded_at", { ascending: false })
+          .limit(1)
+          .single();
 
-        if (aqiRes.data) {
+        if (latestReading) {
           statusMap.set(station.district_id, {
-            current_aqi: aqiRes.data.aqi_value,
-            current_pm25: pm25Res.data?.pm25_value || null,
-            last_updated: aqiRes.data.recorded_at,
+            current_aqi: latestReading.aqi_value,
+            current_pm25: latestReading.pm25_value || null,
+            current_pm10: latestReading.pm10_value || null,
+            current_co: latestReading.co || null,
+            current_so2: latestReading.so2 || null,
+            current_no2: latestReading.no2 || null,
+            current_o3: latestReading.o3 || null,
+            last_updated: latestReading.recorded_at,
           });
         }
       })
@@ -73,16 +75,9 @@ export async function GET() {
   const districts: DistrictListItem[] = allDistricts.map(d => {
     const status = statusMap.get(d.id) || {};
     
-    let finalAqi = status.current_aqi || null;
-    let finalPm25 = status.current_pm25 || null;
-    
-    if (finalAqi !== null) {
-      const mod = getDistrictAQIModifier(d.name);
-      finalAqi = Math.round(finalAqi * mod);
-      if (finalPm25 !== null) {
-        finalPm25 = Math.round(finalPm25 * mod * 10) / 10;
-      }
-    }
+    // Use raw AQI from database — no spatial multiplier applied
+    const finalAqi = status.current_aqi || null;
+    const finalPm25 = status.current_pm25 || null;
     
     const riskTier = finalAqi !== null ? getRiskTier(finalAqi) : "low";
     
@@ -92,6 +87,11 @@ export async function GET() {
       slug: d.slug,
       aqi: finalAqi,
       pm25: finalPm25,
+      pm10_value: status.current_pm10 || null,
+      co: status.current_co || null,
+      so2: status.current_so2 || null,
+      no2: status.current_no2 || null,
+      o3: status.current_o3 || null,
       risk_tier: riskTier as RiskTier,
       symptom_reports_today: status.today_symptom_count || 0,
       has_aqi_data: status.current_aqi != null,

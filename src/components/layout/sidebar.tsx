@@ -1,18 +1,18 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Activity, AlertTriangle } from "lucide-react";
+import Link from "next/link";
+import { Activity, AlertTriangle, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DistrictListItem, RiskTier } from "@/lib/types";
 import { SkeletonLoader } from "@/components/ui/skeleton-loader";
 import { DataBadge } from "@/components/ui/data-badge";
 
 interface SidebarProps {
-  onDistrictSelect: (id: string) => void;
   selectedDistrictId: string | null;
 }
 
-export function Sidebar({ onDistrictSelect, selectedDistrictId }: SidebarProps) {
+export function Sidebar({ selectedDistrictId }: SidebarProps) {
   const [districts, setDistricts] = useState<DistrictListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -80,11 +80,12 @@ export function Sidebar({ onDistrictSelect, selectedDistrictId }: SidebarProps) 
             const isSurge = district.risk_tier === "very_high";
 
             return (
-              <div
+              <Link
                 key={district.district_id}
-                onClick={() => onDistrictSelect(district.district_id)}
+                href={`/districts/${district.slug}`}
+                prefetch={true}
                 className={cn(
-                  "block p-3 rounded-md transition-colors cursor-pointer",
+                  "block p-3 rounded-md transition-colors cursor-pointer group",
                   isActive
                     ? "bg-brand-subtle"
                     : "hover:bg-bg-tertiary"
@@ -98,10 +99,12 @@ export function Sidebar({ onDistrictSelect, selectedDistrictId }: SidebarProps) 
                   )}>
                     {district.name}
                   </span>
-                  <DataBadge type="risk" riskTier={district.risk_tier || "low"}>
-                    {/* Fix 2: Guard null AQI in badge */}
-                    {district.aqi ?? "--"} AQI
-                  </DataBadge>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <DataBadge type="risk" riskTier={district.risk_tier || "low"}>
+                      {district.aqi ?? "--"} AQI
+                    </DataBadge>
+                    <ChevronRight className="h-3.5 w-3.5 text-text-tertiary opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
                 </div>
 
                 {isSurge && (
@@ -112,7 +115,7 @@ export function Sidebar({ onDistrictSelect, selectedDistrictId }: SidebarProps) 
                     </span>
                   </div>
                 )}
-              </div>
+              </Link>
             );
           })
         )}

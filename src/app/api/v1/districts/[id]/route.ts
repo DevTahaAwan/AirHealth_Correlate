@@ -3,6 +3,7 @@ export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/client";
 import { ApiResponse, DistrictDetail, SymptomType, SymptomReportSummary, RiskTier } from "@/lib/types";
+import { pm25FromAQI } from "@/lib/utils/epa-aqi";
 
 export async function GET(
   request: Request,
@@ -16,14 +17,6 @@ export async function GET(
     if (aqi <= 100) return "moderate";
     if (aqi <= 150) return "high";
     return "very_high";
-  }
-
-  function getDistrictAQIModifier(districtName: string): number {
-    const name = districtName.toLowerCase();
-    if (name.includes("cantt") || name.includes("dha") || name.includes("bahria")) return 0.85;
-    if (name.includes("data") || name.includes("iqbal") || name.includes("ravi") || name.includes("shahdara")) return 1.15;
-    if (name.includes("gulberg") || name.includes("johar") || name.includes("model")) return 1.05;
-    return 1.0;
   }
 
   // 1. Fetch district base data directly
@@ -40,28 +33,52 @@ export async function GET(
     );
   }
 
-  // Fetch latest AQI reading for this district
+  // Fetch latest AQI reading for this district — including all pollutant fields
   const { data: station } = await supabase.from("stations").select("id").eq("district_id", id).single();
-  let latestReading: { aqi_value: number; pm25_value: number | null; pm10_value: number | null; recorded_at: string } | null = null;
+  let latestReading: {
+    aqi_value: number;
+    pm25_value: number | null;
+    pm10_value: number | null;
+    co: number | null;
+    so2: number | null;
+    no2: number | null;
+    o3: number | null;
+    recorded_at: string;
+  } | null = null;
+
   if (station) {
-    const [aqiRes, pm25Res, pm10Res] = await Promise.all([
-      supabase.from("aqi_readings").select("aqi_value, recorded_at").eq("station_id", station.id).not("aqi_value", "is", null).order("recorded_at", { ascending: false }).limit(1).single(),
-      supabase.from("aqi_readings").select("pm25_value").eq("station_id", station.id).not("pm25_value", "is", null).order("recorded_at", { ascending: false }).limit(1).single(),
-      supabase.from("aqi_readings").select("pm10_value").eq("station_id", station.id).not("pm10_value", "is", null).order("recorded_at", { ascending: false }).limit(1).single()
-    ]);
-    
-    if (aqiRes.data) {
-       const mod = getDistrictAQIModifier(districtBase.name);
-       latestReading = {
-         aqi_value: Math.round(aqiRes.data.aqi_value * mod),
-         recorded_at: aqiRes.data.recorded_at,
-         pm25_value: pm25Res.data?.pm25_value ? Math.round(pm25Res.data.pm25_value * mod * 10) / 10 : null,
-         pm10_value: pm10Res.data?.pm10_value ? Math.round(pm10Res.data.pm10_value * mod * 10) / 10 : null
-       };
+    // Fetch the single most recent complete reading
+    const { data: reading } = await supabase
+      .from("aqi_readings")
+      .select("aqi_value, pm25_value, pm10_value, co, so2, no2, o3, recorded_at")
+      .eq("station_id", station.id)
+      .not("aqi_value", "is", null)
+      .order("recorded_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (reading) {
+      // Use raw data from database — no spatial multiplier applied
+      latestReading = {
+        aqi_value: reading.aqi_value,
+        recorded_at: reading.recorded_at,
+        pm25_value: reading.pm25_value || null,
+        pm10_value: reading.pm10_value || null,
+        co: reading.co || null,
+        so2: reading.so2 || null,
+        no2: reading.no2 || null,
+        o3: reading.o3 || null,
+      };
     }
   }
 
-  // Merge into a "district" object to match the rest of the code
+  // If PM2.5 is missing but AQI is present, derive it using strict EPA math
+  let derivedPm25: number | null = null;
+  if (latestReading && latestReading.pm25_value === null && latestReading.aqi_value != null) {
+    derivedPm25 = pm25FromAQI(latestReading.aqi_value);
+  }
+
+  // Merge into a "district" object
   const district = {
     district_id: districtBase.id,
     name: districtBase.name,
@@ -69,8 +86,12 @@ export async function GET(
     centroid_lat: districtBase.centroid_lat,
     centroid_lng: districtBase.centroid_lng,
     current_aqi: latestReading?.aqi_value ?? null,
-    current_pm25: latestReading?.pm25_value ?? null,
+    current_pm25: latestReading?.pm25_value ?? derivedPm25,
     current_pm10: latestReading?.pm10_value ?? null,
+    current_co: latestReading?.co ?? null,
+    current_so2: latestReading?.so2 ?? null,
+    current_no2: latestReading?.no2 ?? null,
+    current_o3: latestReading?.o3 ?? null,
     last_updated: latestReading?.recorded_at ?? null,
     current_risk_tier: latestReading ? getRiskTier(latestReading.aqi_value) : "low",
     today_symptom_count: 0
@@ -176,12 +197,20 @@ export async function GET(
     pm25: district.current_pm25 || null,
     pm25_value: district.current_pm25 || null,
     pm10_value: district.current_pm10 || null,
+    co: district.current_co || null,
+    so2: district.current_so2 || null,
+    no2: district.current_no2 || null,
+    o3: district.current_o3 || null,
+    co_value: district.current_co || null,
+    so2_value: district.current_so2 || null,
+    no2_value: district.current_no2 || null,
+    o3_value: district.current_o3 || null,
     risk_tier: (district.current_risk_tier || "low") as RiskTier,
     symptom_reports_today: district.today_symptom_count || 0,
     has_aqi_data: district.current_aqi !== null,
     last_updated: district.last_updated || null,
-    centroid_lat: 31.5204, // Default or fetch from district base table if needed
-    centroid_lng: 74.3587,
+    centroid_lat: district.centroid_lat || 31.5204,
+    centroid_lng: district.centroid_lng || 74.3587,
     boundary_geojson: null,
     advisory_text:
       district.current_risk_tier === "very_high" || district.current_risk_tier === "high"

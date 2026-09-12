@@ -4,6 +4,7 @@ import {
   DistrictListItem,
   RiskTier,
 } from "@/lib/types";
+import { pm25FromAQI } from "@/lib/utils/epa-aqi";
 
 // ============================================================================
 // AirHealth Correlate — In-Memory Mock Store
@@ -46,7 +47,7 @@ export async function fetchAqiData() {
     const districtAqi = Math.round(baseAqi * offset);
     data[d.id] = {
       aqi: districtAqi,
-      pm25: Math.round(districtAqi * 0.7), // Rough approx for PM2.5
+      pm25: pm25FromAQI(districtAqi) ?? 0, // Strict EPA piecewise linear derivation
     };
   });
   
@@ -103,6 +104,11 @@ export class MockDataStore {
         slug: d.slug,
         aqi: aqiInfo.aqi,
         pm25: aqiInfo.pm25,
+        pm10_value: null,
+        co: null,
+        so2: null,
+        no2: null,
+        o3: null,
         risk_tier: getRiskTier(aqiInfo.aqi),
         symptom_reports_today: reportCount,
         has_aqi_data: true,
