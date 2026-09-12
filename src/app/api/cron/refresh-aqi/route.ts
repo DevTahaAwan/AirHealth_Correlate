@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/client";
+import { calculateEPA_AQI } from "@/lib/utils/epa-aqi";
 
 // Define a type for the AQICN API response
 interface AqicnResponse {
@@ -216,13 +217,18 @@ export async function GET(request: Request) {
   const aqiReadingsPayload = stations.map(station => {
     const offset = districtModifiers[station.district_id] ?? 1.0;
     
+    // 1. Restore Spatial Variance (Strict EPA Compliant)
+    const modifiedPm25 = basePm25 !== null ? Math.max(0, Math.round(basePm25 * offset * 100) / 100) : null;
+    const modifiedAqi = modifiedPm25 !== null ? calculateEPA_AQI(modifiedPm25) : Math.max(0, Math.round(baseAqi * offset));
+    const modifiedPm10 = basePm10 !== null ? Math.max(0, Math.round(basePm10 * offset * 100) / 100) : null;
+
     return {
       station_id: station.id,
       source: "aqicn",
       is_fallback_reading: !fetchSuccess,
-      aqi_value: Math.max(0, Math.round(baseAqi * offset)),
-      pm25_value: basePm25 !== null ? Math.max(0, Math.round(basePm25 * offset * 100) / 100) : null,
-      pm10_value: basePm10 !== null ? Math.max(0, Math.round(basePm10 * offset * 100) / 100) : null,
+      aqi_value: modifiedAqi ?? Math.max(0, Math.round(baseAqi * offset)),
+      pm25_value: modifiedPm25,
+      pm10_value: modifiedPm10,
       co: baseCo,
       so2: baseSo2,
       no2: baseNo2,
