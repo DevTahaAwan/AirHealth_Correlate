@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/client";
 import { ApiResponse, DistrictDetail, SymptomType, SymptomReportSummary, RiskTier } from "@/lib/types";
 import { pm25FromAQI } from "@/lib/utils/epa-aqi";
+import { calculateDLNM, type DLNMResult } from "@/lib/services/dlnm-engine";
 
 export async function GET(
   request: Request,
@@ -151,7 +152,7 @@ export async function GET(
     const lng = district.centroid_lng || 74.3587;
     // Fetch both daily precipitation (for rainExpected) and current weather
     const meteoRes = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,precipitation_probability&daily=precipitation_sum&current=temperature_2m,wind_speed_10m,precipitation&past_days=0&forecast_days=2&timezone=auto`
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,precipitation_probability&daily=precipitation_sum&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation&past_days=0&forecast_days=2&timezone=auto`
     );
     
     if (meteoRes.ok) {
@@ -188,6 +189,79 @@ export async function GET(
     console.error("Failed to fetch Open-Meteo data", err);
   }
 
+  // ─── 5. DLNM: Query 6-day PM2.5 history for this station ────────────
+  let dlnmResult: DLNMResult | undefined;
+
+  try {
+    const currentPm25 = district.current_pm25 ?? (district.current_aqi ? pm25FromAQI(district.current_aqi) : null);
+
+    if (currentPm25 !== null && station) {
+      // Fetch last 6 days of PM2.5 readings for this station
+      const sixDaysAgo = new Date();
+      sixDaysAgo.setDate(sixDaysAgo.getDate() - 6);
+
+      const { data: historicalReadings } = await supabase
+        .from("aqi_readings")
+        .select("pm25_value, aqi_value, recorded_at")
+        .eq("station_id", station.id)
+        .gte("recorded_at", sixDaysAgo.toISOString())
+        .order("recorded_at", { ascending: false });
+
+      // Group readings by day and average PM2.5 per day
+      const dailyPm25Map = new Map<string, number[]>();
+      if (historicalReadings) {
+        for (const r of historicalReadings) {
+          const day = r.recorded_at.split("T")[0];
+          const pm25Val = r.pm25_value ?? (r.aqi_value ? pm25FromAQI(r.aqi_value) : null);
+          if (pm25Val !== null) {
+            if (!dailyPm25Map.has(day)) dailyPm25Map.set(day, []);
+            dailyPm25Map.get(day)!.push(pm25Val);
+          }
+        }
+      }
+
+      // Build the 6-day history array [t0=today, t1=yesterday, ...]
+      const pm25History: number[] = [currentPm25];
+      for (let d = 1; d <= 5; d++) {
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() - d);
+        const key = targetDate.toISOString().split("T")[0];
+        const dayValues = dailyPm25Map.get(key);
+        if (dayValues && dayValues.length > 0) {
+          pm25History.push(dayValues.reduce((a, b) => a + b, 0) / dayValues.length);
+        } else {
+          // If no data, apply 5% decay from last known value
+          pm25History.push(pm25History[pm25History.length - 1] * 0.95);
+        }
+      }
+
+      // Pull humidity from Open-Meteo current response (already fetched above)
+      let currentHumidity = 55; // Safe default
+      try {
+        const lat = district.centroid_lat || 31.5204;
+        const lng = district.centroid_lng || 74.3587;
+        const humRes = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=relative_humidity_2m&timezone=auto`
+        );
+        if (humRes.ok) {
+          const humJson = await humRes.json();
+          currentHumidity = humJson.current?.relative_humidity_2m ?? 55;
+        }
+      } catch {
+        // Use default humidity
+      }
+
+      dlnmResult = calculateDLNM({
+        pm25History,
+        temperature: weatherContext?.temperature ?? 28,
+        humidity: currentHumidity,
+        monthIndex: new Date().getMonth(),
+      });
+    }
+  } catch (err) {
+    console.error("DLNM calculation failed:", err);
+  }
+
   const detail: DistrictDetail = {
     district_id: district.district_id,
     name: district.name,
@@ -221,6 +295,7 @@ export async function GET(
     rain_expected: rainExpected,
     weather: weatherContext,
     hourly_forecast: hourlyForecast,
+    dlnm: dlnmResult,
   };
 
   const response: ApiResponse<DistrictDetail> = {

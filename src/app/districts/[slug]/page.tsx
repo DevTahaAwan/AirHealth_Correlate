@@ -14,12 +14,14 @@ import {
   Info,
   CloudRain,
   AlertTriangle,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DistrictDetail,
   DistrictListItem,
   SafeTimeResult,
+  DLNMResult,
 } from "@/lib/types";
 import { DataBadge } from "@/components/ui/data-badge";
 import { CorrelationChart } from "@/components/features/correlation-chart";
@@ -432,6 +434,122 @@ export default function DistrictPage() {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════════
+                3b. DLNM Distributed Lag & Epidemiological Linkage
+               ═══════════════════════════════════════════════════════════════ */}
+            {district.dlnm && (
+              <section className="bg-bg-secondary border border-border-default rounded-xl p-5 space-y-5">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-brand" />
+                    <h3 className="font-bold text-text-primary">
+                      Distributed Lag & Epidemiological Linkage (DLNM)
+                    </h3>
+                  </div>
+                  <DataBadge
+                    type="estimated"
+                    className="text-[10px] bg-red-500/10 text-red-500 border-red-500/20"
+                  >
+                    Gasparrini Model
+                  </DataBadge>
+                </div>
+
+                {/* Primary Metric: Attributable Burden */}
+                <div className="bg-bg-tertiary border border-border-subtle rounded-xl p-5 text-center">
+                  <span className="text-5xl font-black text-brand tracking-tighter">
+                    {district.dlnm.attributableFraction}%
+                  </span>
+                  <p className="text-xs text-text-secondary mt-2 max-w-md mx-auto leading-relaxed">
+                    Attributable Respiratory Burden — percentage of acute respiratory cases in this
+                    district directly attributable to cumulative 5-day PM2.5 exposure above the WHO
+                    15 µg/m³ threshold.
+                  </p>
+                </div>
+
+                {/* Cumulative vs Unlagged Comparison */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-bg-tertiary border border-border-subtle rounded-lg p-4 text-center">
+                    <span className="text-2xl font-black text-text-primary tracking-tight">
+                      {district.dlnm.cumulativeRR}x
+                    </span>
+                    <p className="text-[10px] text-text-tertiary mt-1 font-semibold uppercase tracking-wider">
+                      Cumulative 5-Day RR
+                    </p>
+                  </div>
+                  <div className="bg-bg-tertiary border border-border-subtle rounded-lg p-4 text-center">
+                    <span className="text-2xl font-black text-text-secondary tracking-tight">
+                      {district.dlnm.unlaggedRR}x
+                    </span>
+                    <p className="text-[10px] text-text-tertiary mt-1 font-semibold uppercase tracking-wider">
+                      Unlagged (Same-Day)
+                    </p>
+                  </div>
+                </div>
+
+                {/* 5-Day Lag Distribution Bar */}
+                <div>
+                  <h4 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-3">
+                    5-Day Lag Response Distribution
+                  </h4>
+                  <div className="space-y-2">
+                    {district.dlnm.lagContributions.map((lag) => {
+                      const maxEffect = Math.max(
+                        ...district.dlnm!.lagContributions.map((l) => l.effect),
+                        0.001
+                      );
+                      const barWidth = Math.max(4, (lag.effect / maxEffect) * 100);
+                      return (
+                        <div key={lag.day} className="flex items-center gap-3">
+                          <span className="text-[10px] font-mono text-text-tertiary w-10 shrink-0">
+                            {lag.day}
+                          </span>
+                          <div className="flex-1 bg-bg-tertiary rounded-full h-5 overflow-hidden relative">
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{
+                                width: `${barWidth}%`,
+                                background:
+                                  lag.day === "Day 1"
+                                    ? "linear-gradient(90deg, #ef4444, #f97316)"
+                                    : "linear-gradient(90deg, #3b82f6, #6366f1)",
+                              }}
+                            />
+                            <span className="absolute inset-0 flex items-center px-2 text-[9px] font-bold text-text-primary">
+                              w={lag.weight} · {lag.pm25} µg/m³
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Confounder Control Badges */}
+                <div className="flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-600 border border-sky-500/20">
+                    🌡️ {district.dlnm.confounders.temperatureStress}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-teal-500/10 text-teal-600 border border-teal-500/20">
+                    💧 {district.dlnm.confounders.humidityFactor}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                    📅 {district.dlnm.confounders.seasonalBaseline}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                    ✅ WHO Baseline Normalized
+                  </span>
+                </div>
+
+                {/* Academic Footnote */}
+                <p className="text-[9px] text-text-tertiary italic leading-relaxed border-t border-border-subtle pt-3">
+                  Modeled using Gasparrini Distributed Lag Non-linear methodology with multi-day
+                  biological inflammatory decay and meteorological confounder adjustment. Counterfactual
+                  threshold: WHO PM2.5 annual guideline (15 µg/m³).
+                </p>
+              </section>
             )}
 
             {/* ═══════════════════════════════════════════════════════════════

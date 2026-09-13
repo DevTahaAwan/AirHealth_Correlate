@@ -3,6 +3,9 @@
 // Maps directly to schema.sql entities and API response shapes
 // ============================================================
 
+import type { DLNMResult } from "@/lib/services/dlnm-engine";
+export type { DLNMResult };
+
 // === Enums matching Postgres custom types ===
 
 export type RiskTier = "low" | "moderate" | "high" | "very_high";
@@ -166,6 +169,7 @@ export interface DistrictDetail extends DistrictListItem {
   so2_value?: number | null;
   no2_value?: number | null;
   o3_value?: number | null;
+  dlnm?: DLNMResult;
 }
 
 export interface SymptomReportSummary {
