@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/client";
 import { calculateEPA_AQI } from "@/lib/utils/epa-aqi";
+import { scrapePunjabEPA } from "@/lib/services/punjab-epa-scraper";
 
 // Define a type for the AQICN API response
 interface AqicnResponse {
@@ -77,42 +78,72 @@ export async function GET(request: Request) {
   let baseTime = new Date().toISOString();
   let fetchSuccess = false;
   let staleDataSkipped = false;
+  let dataSource = "aqicn";
 
+  // 4. Primary Source: EPD Punjab Scraper
   try {
-    if (!token) throw new Error("AQICN_API_TOKEN is not set");
-    const res = await fetch(`https://api.waqi.info/feed/@11423/?token=${token}`);
-    const json = (await res.json()) as AqicnResponse;
-
-    if (json.status === "ok") {
-      baseAqi = json.data.aqi;
-      basePm25 = json.data.iaqi?.pm25?.v ?? null;
-      basePm10 = json.data.iaqi?.pm10?.v ?? null;
-      baseCo = json.data.iaqi?.co?.v ?? null;
-      baseSo2 = json.data.iaqi?.so2?.v ?? null;
-      baseNo2 = json.data.iaqi?.no2?.v ?? null;
-      baseO3 = json.data.iaqi?.o3?.v ?? null;
-      
-      // Parse the ISO timestamp from the response for age checking
-      const isoString = json.data.time.iso || json.data.time.s;
-      const recordedDate = new Date(isoString);
-      baseTime = recordedDate.toISOString();
-
-      // Defensive age check: reject data older than 24 hours
-      const now = new Date();
-      const diffInHours = (now.getTime() - recordedDate.getTime()) / (1000 * 60 * 60);
-
-      if (diffInHours > 24) {
-        console.warn(
-          `AQICN data is stale (recorded_at: ${baseTime}, age: ${diffInHours.toFixed(1)}h). Skipping insert.`
-        );
-        staleDataSkipped = true;
-      } else {
-        fetchSuccess = true;
-      }
-    }
+    console.log("Attempting EPD Punjab scraper...");
+    const epdData = await scrapePunjabEPA();
+    
+    baseAqi = epdData.aqi;
+    basePm25 = epdData.pm25;
+    basePm10 = epdData.pm10;
+    baseCo = epdData.co;
+    baseSo2 = epdData.so2;
+    baseNo2 = epdData.no2;
+    baseO3 = epdData.o3;
+    baseTime = new Date().toISOString();
+    
+    fetchSuccess = true;
+    dataSource = "epd-punjab-scraped";
+    console.log("EPD Punjab fetch successful. AQI:", baseAqi);
   } catch (error) {
-    console.error("Failed to fetch AQICN data:", error);
+    console.error("Failed to fetch EPD Punjab data. Falling back to secondary sources.", error);
   }
+
+  // 4a. Secondary Source: Fetch the real base reading from AQICN for Lahore (US Consulate station)
+  // Station @11423 is actively maintained and avoids the stale city-level feed.
+  if (!fetchSuccess) {
+    const token = process.env.AQICN_API_TOKEN;
+    try {
+      if (!token) throw new Error("AQICN_API_TOKEN is not set");
+      const res = await fetch(`https://api.waqi.info/feed/@11423/?token=${token}`);
+      const json = (await res.json()) as AqicnResponse;
+
+      if (json.status === "ok") {
+        baseAqi = json.data.aqi;
+        basePm25 = json.data.iaqi?.pm25?.v ?? null;
+        basePm10 = json.data.iaqi?.pm10?.v ?? null;
+        baseCo = json.data.iaqi?.co?.v ?? null;
+        baseSo2 = json.data.iaqi?.so2?.v ?? null;
+        baseNo2 = json.data.iaqi?.no2?.v ?? null;
+        baseO3 = json.data.iaqi?.o3?.v ?? null;
+        
+        // Parse the ISO timestamp from the response for age checking
+        const isoString = json.data.time.iso || json.data.time.s;
+        const recordedDate = new Date(isoString);
+        baseTime = recordedDate.toISOString();
+
+        // Defensive age check: reject data older than 24 hours
+        const now = new Date();
+        const diffInHours = (now.getTime() - recordedDate.getTime()) / (1000 * 60 * 60);
+
+        if (diffInHours > 24) {
+          console.warn(
+            `AQICN data is stale (recorded_at: ${baseTime}, age: ${diffInHours.toFixed(1)}h). Skipping insert.`
+          );
+          staleDataSkipped = true;
+        } else {
+          fetchSuccess = true;
+          dataSource = "aqicn";
+          console.log("AQICN fetch successful. AQI:", baseAqi);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch AQICN data:", error);
+    }
+  }
+
 
   // 4b. Fallback to IQAir API if AQICN failed or returned stale data
   if (!fetchSuccess) {
@@ -136,6 +167,7 @@ export async function GET(request: Request) {
           }
           
           fetchSuccess = true;
+          dataSource = "iqair";
           staleDataSkipped = false; // We got fresh fallback data, don't abort
           console.log("IQAir fallback successful. AQI:", baseAqi);
         } else {
@@ -224,7 +256,7 @@ export async function GET(request: Request) {
 
     return {
       station_id: station.id,
-      source: "aqicn",
+      source: dataSource,
       is_fallback_reading: !fetchSuccess,
       aqi_value: modifiedAqi ?? Math.max(0, Math.round(baseAqi * offset)),
       pm25_value: modifiedPm25,

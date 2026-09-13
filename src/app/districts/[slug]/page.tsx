@@ -352,7 +352,7 @@ export default function DistrictPage() {
                   Pollutant Breakdown
                 </h2>
                 <span className="text-[10px] text-text-tertiary italic">
-                  Live telemetry via AQICN/OpenAQ. Missing gasses derived via urban smog heuristics.
+                  Live telemetry aggregated via EPD Punjab, OpenAQ, and AQICN. Missing gasses derived via urban smog heuristics.
                 </span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
