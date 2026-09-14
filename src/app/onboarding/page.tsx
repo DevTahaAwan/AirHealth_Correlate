@@ -7,6 +7,8 @@ import { RespiratoryCondition } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, Loader2, MapPin } from "lucide-react";
 import { getNearestDistrict } from "@/lib/utils/geolocation";
+import { useAuth } from "@/components/auth/auth-provider";
+import { useUserProfile } from "@/lib/hooks/use-user-profile";
 
 const CONDITIONS: { id: RespiratoryCondition; label: string; desc: string }[] = [
   { id: "asthma", label: "Asthma", desc: "Chronic inflammatory disease of the airways." },
@@ -16,16 +18,48 @@ const CONDITIONS: { id: RespiratoryCondition; label: string; desc: string }[] = 
   { id: "none", label: "None", desc: "I do not have any pre-existing respiratory conditions." },
 ];
 
-export default function ProfileSetupPage() {
+export default function OnboardingPage() {
   const router = useRouter();
+  const { user, supabase } = useAuth();
+  const { profile, loading: profileLoading } = useUserProfile();
+
+  const [fullName, setFullName] = useState("");
   const [selected, setSelected] = useState<RespiratoryCondition[]>([]);
   const [ageGroup, setAgeGroup] = useState<string>("adult");
   const [exposure, setExposure] = useState<string>("mostly_indoors");
   const [isSaving, setIsSaving] = useState(false);
   
   const [locationName, setLocationName] = useState<string | null>(null);
+  const [districtId, setDistrictId] = useState<string | null>(null);
   const [isDetecting, setIsDetecting] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+
+  // Initialize from existing profile or local storage migration
+  useEffect(() => {
+    if (profileLoading) return;
+
+    if (profile) {
+      setFullName(profile.full_name || "");
+      setSelected(profile.conditions || []);
+      setAgeGroup(profile.age_group || "adult");
+      setExposure(profile.exposure_level || "mostly_indoors");
+      setDistrictId(profile.home_district_id);
+    } else {
+      // Try to migrate from local storage
+      const savedConditions = localStorage.getItem("airhealth_user_conditions");
+      if (savedConditions) {
+        try {
+          setSelected(JSON.parse(savedConditions));
+        } catch {
+          // Ignore
+        }
+      }
+      const savedAge = localStorage.getItem("airhealth_user_age");
+      if (savedAge) setAgeGroup(savedAge);
+      const savedExposure = localStorage.getItem("airhealth_user_exposure");
+      if (savedExposure) setExposure(savedExposure);
+    }
+  }, [profile, profileLoading]);
 
   const toggleCondition = (condition: RespiratoryCondition) => {
     if (condition === "none") {
@@ -42,15 +76,37 @@ export default function ProfileSetupPage() {
     });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!user) return;
     setIsSaving(true);
-    // Mock save to localStorage
-    setTimeout(() => {
-      localStorage.setItem("airhealth_user_conditions", JSON.stringify(selected));
-      localStorage.setItem("airhealth_user_age", ageGroup);
-      localStorage.setItem("airhealth_user_exposure", exposure);
+    
+    try {
+      const { error } = await supabase.from("user_profiles").upsert({
+        auth_id: user.id,
+        full_name: fullName,
+        age_group: ageGroup,
+        conditions: selected,
+        exposure_level: exposure,
+        home_district_id: districtId,
+        profile_completed: true,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "auth_id" });
+
+      if (error) throw error;
+
+      // Clean up localStorage migration data
+      localStorage.removeItem("airhealth_user_conditions");
+      localStorage.removeItem("airhealth_user_age");
+      localStorage.removeItem("airhealth_user_exposure");
+
       router.push("/");
-    }, 800);
+      router.refresh();
+    } catch (error) {
+      console.error("Failed to save profile:", error);
+      alert("Failed to save profile. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleDetectLocation = async () => {
@@ -60,6 +116,7 @@ export default function ProfileSetupPage() {
       const nearest = await getNearestDistrict();
       if (nearest) {
         setLocationName(nearest.name);
+        setDistrictId(nearest.district_id);
       }
     } catch (err) {
       if (err instanceof GeolocationPositionError && err.code === err.PERMISSION_DENIED) {
@@ -71,22 +128,13 @@ export default function ProfileSetupPage() {
     }
   };
 
-  // Load existing
-  useEffect(() => {
-    const savedConditions = localStorage.getItem("airhealth_user_conditions");
-    if (savedConditions) {
-      try {
-        setSelected(JSON.parse(savedConditions));
-      } catch {
-        // Ignore error
-      }
-    }
-    const savedAge = localStorage.getItem("airhealth_user_age");
-    if (savedAge) setAgeGroup(savedAge);
-    const savedExposure = localStorage.getItem("airhealth_user_exposure");
-    if (savedExposure) setExposure(savedExposure);
-  }, []);
-
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg-primary">
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-bg-primary">
@@ -94,37 +142,51 @@ export default function ProfileSetupPage() {
       <main className="flex-1 max-w-2xl mx-auto w-full p-6 md:p-12">
         <h1 className="text-3xl font-bold text-text-primary mb-2">Health Profile Setup</h1>
         <p className="text-text-secondary mb-8">
-          Select any pre-existing respiratory conditions. This helps us calculate a personalized Safe Exposure Time for your area.
+          Complete your profile to receive personalized Safe Exposure Time calculations for your area.
         </p>
 
-        <div className="space-y-3 mb-10">
-          {CONDITIONS.map((cond) => {
-            const isSelected = selected.includes(cond.id);
-            return (
-              <button
-                key={cond.id}
-                onClick={() => toggleCondition(cond.id)}
-                className={cn(
-                  "w-full flex items-start text-left p-4 rounded-xl border-2 transition-all",
-                  isSelected
-                    ? "border-brand bg-brand-subtle"
-                    : "border-border-default bg-bg-secondary hover:border-brand/50"
-                )}
-              >
-                <div className="flex-1">
-                  <h3 className={cn("font-semibold text-lg", isSelected ? "text-brand-active" : "text-text-primary")}>
-                    {cond.label}
-                  </h3>
-                  <p className={cn("text-sm mt-1", isSelected ? "text-brand-active/80" : "text-text-secondary")}>
-                    {cond.desc}
-                  </p>
-                </div>
-                {isSelected && (
-                  <CheckCircle2 className="h-6 w-6 text-brand mt-1 flex-shrink-0" />
-                )}
-              </button>
-            );
-          })}
+        <div className="mb-10">
+          <label className="block text-sm font-bold text-text-primary mb-3">Full Name</label>
+          <input
+            type="text"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl border-2 border-border-default bg-bg-secondary focus:border-brand focus:ring-0 transition-colors text-text-primary"
+            placeholder="Jane Doe"
+          />
+        </div>
+
+        <div className="mb-10">
+          <h2 className="text-xl font-bold text-text-primary mb-3">Pre-existing Conditions</h2>
+          <div className="space-y-3">
+            {CONDITIONS.map((cond) => {
+              const isSelected = selected.includes(cond.id);
+              return (
+                <button
+                  key={cond.id}
+                  onClick={() => toggleCondition(cond.id)}
+                  className={cn(
+                    "w-full flex items-start text-left p-4 rounded-xl border-2 transition-all",
+                    isSelected
+                      ? "border-brand bg-brand-subtle"
+                      : "border-border-default bg-bg-secondary hover:border-brand/50"
+                  )}
+                >
+                  <div className="flex-1">
+                    <h3 className={cn("font-semibold text-lg", isSelected ? "text-brand-active" : "text-text-primary")}>
+                      {cond.label}
+                    </h3>
+                    <p className={cn("text-sm mt-1", isSelected ? "text-brand-active/80" : "text-text-secondary")}>
+                      {cond.desc}
+                    </p>
+                  </div>
+                  {isSelected && (
+                    <CheckCircle2 className="h-6 w-6 text-brand mt-1 flex-shrink-0" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Age Group */}
@@ -209,14 +271,14 @@ export default function ProfileSetupPage() {
           </button>
         </div>
 
-        <div className="flex justify-end border-t border-border-default pt-6">
+        <div className="flex justify-end border-t border-border-default pt-6 pb-12">
           <button
             onClick={handleSave}
             disabled={selected.length === 0 || isSaving}
             className="px-8 py-3 bg-brand text-white font-semibold rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 flex items-center gap-2"
           >
             {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
-            Save & Continue
+            Save Profile
           </button>
         </div>
       </main>

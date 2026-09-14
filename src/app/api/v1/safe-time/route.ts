@@ -3,11 +3,15 @@ import { NextResponse } from "next/server";
 import { MockDataStore } from "@/lib/store";
 import { calculateSafeExposure } from "@/lib/services";
 import { RespiratoryCondition } from "@/lib/types";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const districtId = searchParams.get("district_id");
   const conditionsParam = searchParams.get("conditions");
+  let ageGroup = searchParams.get("ageGroup") || "adult";
+  let exposure = searchParams.get("exposure") || "mostly_indoors";
+  let conditions: RespiratoryCondition[] = [];
 
   if (!districtId) {
     return NextResponse.json(
@@ -27,14 +31,35 @@ export async function GET(request: Request) {
   }
 
   const aqi = district.aqi || 50;
-  
-  const ageGroup = searchParams.get("ageGroup") || "adult";
-  const exposure = searchParams.get("exposure") || "mostly_indoors";
 
-  // Parse conditions (comma separated)
-  let conditions: RespiratoryCondition[] = [];
-  if (conditionsParam) {
-    conditions = conditionsParam.split(",") as RespiratoryCondition[];
+  // Try to load user profile from Supabase if authenticated
+  try {
+    const supabase = createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("auth_id", user.id)
+        .single();
+      
+      if (profile) {
+        ageGroup = profile.age_group || ageGroup;
+        exposure = profile.exposure_level || exposure;
+        if (profile.conditions && Array.isArray(profile.conditions)) {
+          conditions = profile.conditions as RespiratoryCondition[];
+        }
+      }
+    } else if (conditionsParam) {
+      // Fallback to query params if not authenticated
+      conditions = conditionsParam.split(",") as RespiratoryCondition[];
+    }
+  } catch {
+    // Graceful fallback to query params
+    if (conditionsParam) {
+      conditions = conditionsParam.split(",") as RespiratoryCondition[];
+    }
   }
 
   const result = calculateSafeExposure(aqi, conditions, ageGroup, exposure);

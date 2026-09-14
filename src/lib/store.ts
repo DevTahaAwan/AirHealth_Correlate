@@ -86,6 +86,11 @@ export class MockDataStore {
     }
   }
 
+  static async getAllSymptomReports(): Promise<SymptomReport[]> {
+    this.initialize();
+    return [...this.reports];
+  }
+
   static async getDistrictList(): Promise<DistrictListItem[]> {
     this.initialize();
     const today = getTodayStr();

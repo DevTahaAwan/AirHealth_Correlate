@@ -10,6 +10,7 @@ import { SymptomReportModal } from "@/components/features/symptom-report-modal";
 import { DistrictListItem, SurgeFlagItem } from "@/lib/types";
 import { MapPin } from "lucide-react";
 import { getNearestDistrictFromList } from "@/lib/utils/geolocation";
+import { useAqiMonitor } from "@/lib/hooks/use-aqi-monitor";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -21,6 +22,9 @@ export default function DashboardPage() {
   
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+
+  // Phase 4: Monitor AQI for the currently selected district on dashboard
+  useAqiMonitor(selectedDistrictId);
 
   // Initial Data Fetch (Districts & Surge Flags)
   useEffect(() => {

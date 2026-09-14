@@ -174,6 +174,7 @@ function padPm25History(raw: number[]): number[] {
   if (raw.length >= 6) return raw.slice(0, 6);
 
   const padded = [...raw];
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const lastKnown = padded[padded.length - 1] || 50; // Fallback to moderate baseline
 
   while (padded.length < 6) {

@@ -21,11 +21,12 @@ import {
   DistrictDetail,
   DistrictListItem,
   SafeTimeResult,
-  DLNMResult,
 } from "@/lib/types";
 import { DataBadge } from "@/components/ui/data-badge";
 import { CorrelationChart } from "@/components/features/correlation-chart";
 import { calculateRespiratoryRisk } from "@/lib/utils/airq-calculator";
+import { OutdoorTimer } from "@/components/features/outdoor-timer";
+import { useAqiMonitor } from "@/lib/hooks/use-aqi-monitor";
 import {
   pm25FromAQI,
   calculateEPA_AQI,
@@ -129,23 +130,7 @@ export default function DistrictPage() {
     async function fetchAll() {
       setLoading(true);
       try {
-        const conditionsStr = localStorage.getItem("airhealth_user_conditions");
-        const ageGroup =
-          localStorage.getItem("airhealth_user_age") || "adult";
-        const exposure =
-          localStorage.getItem("airhealth_user_exposure") || "mostly_indoors";
-
-        let safeTimeUrl = `/api/v1/safe-time?district_id=${districtId}&ageGroup=${ageGroup}&exposure=${exposure}`;
-        if (conditionsStr) {
-          try {
-            const conditions = JSON.parse(conditionsStr);
-            if (conditions.length > 0) {
-              safeTimeUrl += `&conditions=${conditions.join(",")}`;
-            }
-          } catch {
-            // Ignore parse errors
-          }
-        }
+        const safeTimeUrl = `/api/v1/safe-time?district_id=${districtId}`;
 
         const [detailRes, safeRes] = await Promise.all([
           fetch(`/api/v1/districts/${districtId}`),
@@ -166,6 +151,9 @@ export default function DistrictPage() {
 
     fetchAll();
   }, [districtId]);
+
+  // Phase 4: Monitor AQI Spikes
+  useAqiMonitor(districtId);
 
   // Derived values using strict EPA math
   const effectivePm25 =
@@ -403,6 +391,7 @@ export default function DistrictPage() {
                         : "Baseline for general population."}{" "}
                       {safeTime.disclaimer}
                     </p>
+                    <OutdoorTimer safeMinutes={safeTime.safe_minutes} />
                   </div>
                 )}
 

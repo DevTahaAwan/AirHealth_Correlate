@@ -67,6 +67,7 @@ export async function GET(request: Request) {
 
   // 4. Fetch the real base reading from AQICN for Lahore (US Consulate station)
   // Station @11423 is actively maintained and avoids the stale city-level feed.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const token = process.env.AQICN_API_TOKEN;
   let baseAqi = 150; // Fallback default
   let basePm25: number | null = null;

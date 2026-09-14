@@ -47,7 +47,7 @@ export async function scrapePunjabEPA(): Promise<EPA_ScrapeResult> {
   let snapshotData;
   try {
     snapshotData = JSON.parse(decodedSnapshot);
-  } catch (error) {
+  } catch {
     throw new Error("Failed to parse wire:snapshot JSON from EPD Punjab");
   }
 
@@ -57,6 +57,7 @@ export async function scrapePunjabEPA(): Promise<EPA_ScrapeResult> {
     const stationsData = lahoreData.stations.flat(Infinity);
 
     // Filter valid stations
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const validStations = stationsData.filter((s: any) => s && s.station_id);
 
     if (validStations.length === 0) {
@@ -111,7 +112,7 @@ export async function scrapePunjabEPA(): Promise<EPA_ScrapeResult> {
       no2: no2Count > 0 ? Number((totalNo2 / no2Count).toFixed(2)) : null,
       o3: o3Count > 0 ? Number((totalO3 / o3Count).toFixed(2)) : null,
     };
-  } catch (error: any) {
-    throw new Error(`Failed to extract EPD Punjab data structure: ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(`Failed to extract EPD Punjab data structure: ${(error as Error).message}`);
   }
 }
