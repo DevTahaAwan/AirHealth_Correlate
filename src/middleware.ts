@@ -6,7 +6,7 @@ import { createSupabaseMiddlewareClient } from "@/lib/supabase/middleware";
 // ============================================================================
 
 /** Routes that require authentication */
-const PROTECTED_ROUTES = ["/onboarding", "/profile", "/admin"];
+const PROTECTED_ROUTES = ["/onboarding", "/profile", "/admin", "/dashboard"];
 
 /** Routes only accessible when NOT logged in */
 const AUTH_ROUTES = ["/login", "/signup"];
@@ -37,10 +37,25 @@ export async function middleware(request: NextRequest) {
 
   const isAuthenticated = !!user;
 
+  // ── Root route logic ────────────────────────────────────────────────
+  if (pathname === "/") {
+    if (isAuthenticated) {
+      if (user.email && isAdminEmail(user.email)) {
+        return NextResponse.redirect(new URL("/admin", request.url));
+      }
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+    // Allow unauthenticated users to access /
+    return response;
+  }
+
   // ── Auth routes: redirect logged-in users to dashboard ──────────────
   if (AUTH_ROUTES.some((route) => pathname.startsWith(route))) {
     if (isAuthenticated) {
-      return NextResponse.redirect(new URL("/", request.url));
+      if (user.email && isAdminEmail(user.email)) {
+        return NextResponse.redirect(new URL("/admin", request.url));
+      }
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
     return response;
   }
@@ -56,14 +71,21 @@ export async function middleware(request: NextRequest) {
     // ── Admin routes: require admin email ───────────────────────────
     if (ADMIN_ROUTES.some((route) => pathname.startsWith(route))) {
       if (!user.email || !isAdminEmail(user.email)) {
-        return NextResponse.redirect(new URL("/", request.url));
+        return NextResponse.redirect(new URL("/dashboard", request.url));
       }
     }
 
     // ── Onboarding check: if user has completed profile, redirect ──
-    // (Skip this check if already on onboarding page)
-    if (!pathname.startsWith("/onboarding")) {
-      // Profile check happens client-side via the useUserProfile hook
+    if (pathname.startsWith("/dashboard")) {
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .single();
+        
+      if (!profile) {
+        return NextResponse.redirect(new URL("/onboarding", request.url));
+      }
     }
   }
 
