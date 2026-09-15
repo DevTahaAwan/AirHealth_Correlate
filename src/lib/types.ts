@@ -170,6 +170,17 @@ export interface DistrictDetail extends DistrictListItem {
   no2_value?: number | null;
   o3_value?: number | null;
   dlnm?: DLNMResult;
+  predictive_forecast?: PredictiveForecastDay[];
+}
+
+export interface PredictiveForecastDay {
+  day: number;
+  date: string;
+  pm25: number;
+  aqi: number;
+  surgePercentage: number;
+  weatherSummary: string;
+  triggers: string[];
 }
 
 export interface SymptomReportSummary {

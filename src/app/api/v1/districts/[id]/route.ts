@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/client";
 import { ApiResponse, DistrictDetail, SymptomType, SymptomReportSummary, RiskTier } from "@/lib/types";
 import { pm25FromAQI } from "@/lib/utils/epa-aqi";
 import { calculateDLNM, type DLNMResult } from "@/lib/services/dlnm-engine";
+import { generate72HourForecast, type WeatherForecastInput } from "@/lib/services/aqi-forecaster";
 
 export async function GET(
   request: Request,
@@ -151,8 +152,9 @@ export async function GET(
     const lat = district.centroid_lat || 31.5204;
     const lng = district.centroid_lng || 74.3587;
     // Fetch both daily precipitation (for rainExpected) and current weather
+    // Update: add daily temperature_2m_max,temperature_2m_min,wind_speed_10m_max for forecasting
     const meteoRes = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,precipitation_probability&daily=precipitation_sum&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation&past_days=0&forecast_days=2&timezone=auto`
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,precipitation_probability&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,wind_speed_10m_max&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation&past_days=0&forecast_days=4&timezone=auto`
     );
     
     if (meteoRes.ok) {
@@ -262,6 +264,43 @@ export async function GET(
     console.error("DLNM calculation failed:", err);
   }
 
+  // ─── 6. 72-Hour Predictive Early Warning Layer ────────────
+  let predictiveForecast = undefined;
+  try {
+    const currentPm25 = district.current_pm25 ?? (district.current_aqi ? pm25FromAQI(district.current_aqi) : null);
+    if (currentPm25 !== null && weatherContext && hourlyForecast) {
+      // Re-fetch or rely on the meteoJson? Since we don't have meteoJson in this scope, let's just make a quick fetch again or re-use the JSON if it's available.
+      // Wait, we can fetch it again specifically for the forecast or move the logic up.
+      // Better yet, just fetch it here since the params are easy.
+      const lat = district.centroid_lat || 31.5204;
+      const lng = district.centroid_lng || 74.3587;
+      const forecastRes = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,wind_speed_10m_max,precipitation_sum&timezone=auto&forecast_days=4`
+      );
+      if (forecastRes.ok) {
+        const forecastJson = await forecastRes.json();
+        if (forecastJson.daily && forecastJson.daily.time) {
+          const inputs: WeatherForecastInput[] = [];
+          // Indices 1, 2, 3 correspond to Tomorrow, Day 2, Day 3
+          for (let i = 1; i <= 3; i++) {
+            if (forecastJson.daily.time[i]) {
+              inputs.push({
+                date: forecastJson.daily.time[i],
+                minTemp: forecastJson.daily.temperature_2m_min[i],
+                maxTemp: forecastJson.daily.temperature_2m_max[i],
+                windSpeed: forecastJson.daily.wind_speed_10m_max[i],
+                precipitation: forecastJson.daily.precipitation_sum[i],
+              });
+            }
+          }
+          predictiveForecast = generate72HourForecast(currentPm25, inputs);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Predictive forecasting failed:", err);
+  }
+
   const detail: DistrictDetail = {
     district_id: district.district_id,
     name: district.name,
@@ -296,6 +335,7 @@ export async function GET(
     weather: weatherContext,
     hourly_forecast: hourlyForecast,
     dlnm: dlnmResult,
+    predictive_forecast: predictiveForecast,
   };
 
   const response: ApiResponse<DistrictDetail> = {
