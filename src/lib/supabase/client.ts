@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
 // =============================================================================
 // Supabase Client Singletons
@@ -16,13 +17,13 @@ let _supabase: SupabaseClient | null = null;
 
 export function getSupabase(): SupabaseClient {
   if (!_supabase) {
-    _supabase = createClient(supabaseUrl, supabaseAnonKey);
+    _supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
   }
   return _supabase;
 }
 
 /** Backward-compat default export */
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = getSupabase();
 
 // --- Admin (service role) client --------------------------------------------
 let _supabaseAdmin: SupabaseClient | null = null;
