@@ -2,7 +2,6 @@
 
 import React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Wind, ShieldAlert, Users, LayoutDashboard, Settings, SlidersHorizontal, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useToast } from "@/lib/hooks/use-toast";
@@ -12,7 +11,6 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const { showToast } = useToast();
 
   const handleLogout = async () => {
@@ -49,7 +47,7 @@ export default function AdminLayout({
             href="#" 
             onClick={(e) => {
               e.preventDefault();
-              showToast({ title: 'Module in Development', message: 'This feature is locked for the hackathon prototype.', variant: 'info' });
+              showToast({ title: 'Module in Development', message: 'This feature is locked for the hackathon prototype.', variant: 'default' });
             }}
             className="flex items-center gap-3 px-3 py-2 text-slate-400 hover:bg-slate-800 hover:text-white rounded-md font-medium text-sm transition-colors"
           >
@@ -60,7 +58,7 @@ export default function AdminLayout({
             href="#" 
             onClick={(e) => {
               e.preventDefault();
-              showToast({ title: 'Module in Development', message: 'This feature is locked for the hackathon prototype.', variant: 'info' });
+              showToast({ title: 'Module in Development', message: 'This feature is locked for the hackathon prototype.', variant: 'default' });
             }}
             className="flex items-center gap-3 px-3 py-2 text-slate-400 hover:bg-slate-800 hover:text-white rounded-md font-medium text-sm transition-colors"
           >
@@ -71,7 +69,7 @@ export default function AdminLayout({
             href="#" 
             onClick={(e) => {
               e.preventDefault();
-              showToast({ title: 'Module in Development', message: 'This feature is locked for the hackathon prototype.', variant: 'info' });
+              showToast({ title: 'Module in Development', message: 'This feature is locked for the hackathon prototype.', variant: 'default' });
             }}
             className="flex items-center gap-3 px-3 py-2 text-slate-400 hover:bg-slate-800 hover:text-white rounded-md font-medium text-sm transition-colors"
           >
