@@ -3,6 +3,11 @@
 import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Activity, MapPin, AlertCircle, Loader2, Users } from "lucide-react";
+import { DistributedLagDLNM } from "@/components/features/dlnm-widget";
+import { PredictiveForecast } from "@/components/features/predictive-forecast";
+import { PolicyInterventionSimulator } from "@/components/features/policy-intervention-simulator";
+import { pm25FromAQI } from "@/lib/utils/epa-aqi";
+import { DLNMResult, PredictiveForecastDay } from "@/lib/types";
 // Dynamically import the Leaflet heatmap to avoid SSR issues
 const AdminHeatmap = dynamic(
   () => import("@/components/features/admin-heatmap"),
@@ -21,6 +26,8 @@ interface Metrics {
   mostAffectedDistrict: string;
   mostAffectedCount: number;
   cityAqiAverage: number;
+  dlnm?: DLNMResult;
+  predictive_forecast?: PredictiveForecastDay[];
 }
 
 interface DemographicData {
@@ -83,10 +90,11 @@ export default function AdminPage() {
     );
   }
 
+
   return (
     <div className="h-full flex flex-col relative">
       {/* Top Overlay Metrics */}
-      <div className="absolute top-4 left-4 right-4 z-10 grid grid-cols-1 md:grid-cols-4 gap-4 pointer-events-none">
+      <div className="absolute top-4 left-4 right-[400px] z-10 grid grid-cols-1 md:grid-cols-4 gap-4 pointer-events-none">
         {/* Metric 1 */}
         <div className="bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-xl p-4 shadow-xl pointer-events-auto">
           <div className="flex items-center gap-2 text-slate-400 mb-2">
@@ -160,8 +168,32 @@ export default function AdminPage() {
 
 
       {/* Map Container */}
-      <div className="flex-1">
+      <div className="flex-1 relative">
         <AdminHeatmap reports={reports} />
+        
+        {/* Right Side Tools Panel */}
+        <div className="absolute top-0 right-0 bottom-0 w-[380px] bg-slate-900/95 backdrop-blur-md border-l border-slate-800 z-10 overflow-y-auto p-4 space-y-6">
+          <div className="border-b border-slate-800 pb-2">
+            <h2 className="text-lg font-bold text-white">Command Center Analytics</h2>
+            <p className="text-xs text-slate-400">Predictive & Epidemiological Tools</p>
+          </div>
+          
+          {metrics?.predictive_forecast && (
+            <PredictiveForecast forecasts={metrics.predictive_forecast} />
+          )}
+          
+          {metrics?.dlnm && (
+            <DistributedLagDLNM dlnm={metrics.dlnm} />
+          )}
+          
+          <div className="bg-slate-800/40 rounded-xl p-1 border border-slate-700/50">
+            <PolicyInterventionSimulator 
+              currentPm25={(metrics?.cityAqiAverage ? pm25FromAQI(metrics.cityAqiAverage) : null) ?? 55.0} 
+              districtPopulation={demographics.reduce((acc, d) => acc + d.totalVulnerable, 0) || 850000}
+              districtName="Lahore Citywide"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

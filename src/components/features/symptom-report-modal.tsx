@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
-import { getDeviceId } from "@/lib/utils/device-id";
 import { SymptomType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -64,12 +63,6 @@ export function SymptomReportModal({
   };
 
   const handleSubmit = async () => {
-    const deviceId = getDeviceId();
-    if (!deviceId) {
-      setError("Unable to identify device. Please enable localStorage.");
-      return;
-    }
-
     setIsSubmitting(true);
     setError(null);
 
@@ -78,7 +71,6 @@ export function SymptomReportModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_id: deviceId,
           district_id: districtId,
           symptoms: selectedSymptoms,
           severity,

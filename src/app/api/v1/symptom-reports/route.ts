@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/client";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
 const symptomEnum = z.enum([
@@ -13,7 +14,6 @@ const symptomEnum = z.enum([
 ]);
 
 const reportSchema = z.object({
-  user_id: z.string().min(1),
   district_id: z.string().min(1),
   symptoms: z.array(symptomEnum).min(1),
   severity: z.number().min(1).max(10),
@@ -33,15 +33,29 @@ export async function POST(request: Request) {
       );
     }
 
-    const { user_id: device_id, district_id, symptoms, severity, duration } = result.data;
+    const { district_id, symptoms, severity, duration } = result.data;
+    const supabaseServer = createSupabaseServerClient();
+    const { data: { session } } = await supabaseServer.auth.getSession();
+
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: { code: "UNAUTHORIZED", message: "You must be logged in to report symptoms." } },
+        { status: 401 }
+      );
+    }
+
+    const uid = session.user.id;
+    const name = session.user.user_metadata?.name || session.user.email?.split('@')[0] || "Anonymous";
+    const email = session.user.email || "";
+
     const supabase = getSupabaseAdmin();
     const today = new Date().toISOString().split('T')[0];
 
-    // Explicitly check for an existing report today from this device in this district
+    // Explicitly check for an existing report today from this user in this district
     const { data: existingReport } = await supabase
       .from("symptom_reports")
       .select("id")
-      .eq("device_id", device_id)
+      .eq("user_id", uid)
       .eq("district_id", district_id)
       .eq("reported_at", today)
       .limit(1)
@@ -56,7 +70,9 @@ export async function POST(request: Request) {
 
     // Prepare rows to insert (one per symptom)
     const rowsToInsert = symptoms.map(symptom => ({
-      device_id,
+      user_id: uid,
+      reporter_name: name,
+      reporter_email: email,
       district_id,
       symptom,
       severity,

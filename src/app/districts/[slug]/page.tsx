@@ -13,16 +13,12 @@ import {
   ShieldAlert,
   Info,
   CloudRain,
-  AlertTriangle,
-  BarChart3,
-  ChevronDown,
-  ChevronUp,
-  SlidersHorizontal
+  AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PolicyInterventionSimulator } from "@/components/features/policy-intervention-simulator";
 import {
   DistrictDetail,
+
   DistrictListItem,
   SafeTimeResult,
 } from "@/lib/types";
@@ -38,8 +34,7 @@ import {
   calculateCO_AQI,
   calculateSO2_AQI,
   calculateNO2_AQI,
-  calculateO3_AQI,
-  getAQICategory,
+  calculateO3_AQI
 } from "@/lib/utils/epa-aqi";
 import { Header } from "@/components/layout/header";
 
@@ -87,7 +82,6 @@ export default function DistrictPage() {
   const [safeTime, setSafeTime] = useState<SafeTimeResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [districtId, setDistrictId] = useState<string | null>(null);
-  const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
 
   // Find the district by slug from the list API
   useEffect(() => {
@@ -415,135 +409,6 @@ export default function DistrictPage() {
               </div>
             )}
 
-            {/* ═══════════════════════════════════════════════════════════════
-                3b. DLNM Distributed Lag & Epidemiological Linkage
-               ═══════════════════════════════════════════════════════════════ */}
-            {district.dlnm && (
-              <section className="bg-bg-secondary border border-border-default rounded-xl p-5 space-y-5">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-brand" />
-                    <h3 className="font-bold text-text-primary">
-                      Distributed Lag & Epidemiological Linkage (DLNM)
-                    </h3>
-                  </div>
-                  <DataBadge
-                    type="estimated"
-                    className="text-[10px] bg-red-500/10 text-red-500 border-red-500/20"
-                  >
-                    Gasparrini Model
-                  </DataBadge>
-                </div>
-
-                {/* Primary Metric: Attributable Burden */}
-                <div className="bg-bg-tertiary border border-border-subtle rounded-xl p-5 text-center">
-                  <span className="text-5xl font-black text-brand tracking-tighter">
-                    {district.dlnm.attributableFraction}%
-                  </span>
-                  <p className="text-xs text-text-secondary mt-2 max-w-md mx-auto leading-relaxed">
-                    Attributable Respiratory Burden — percentage of acute respiratory cases in this
-                    district directly attributable to cumulative 5-day PM2.5 exposure above the WHO
-                    15 µg/m³ threshold.
-                  </p>
-                </div>
-
-
-
-                {/* Confounder Control Badges */}
-                <div className="flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-600 border border-sky-500/20">
-                    🌡️ {district.dlnm.confounders.temperatureStress}
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-teal-500/10 text-teal-600 border border-teal-500/20">
-                    💧 {district.dlnm.confounders.humidityFactor}
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                    📅 {district.dlnm.confounders.seasonalBaseline}
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                    ✅ WHO Baseline Normalized
-                  </span>
-                </div>
-
-                {/* Academic Footnote */}
-                <p className="text-[9px] text-text-tertiary italic leading-relaxed border-t border-border-subtle pt-3">
-                  Modeled using Gasparrini Distributed Lag Non-linear methodology with multi-day
-                  biological inflammatory decay and meteorological confounder adjustment. Counterfactual
-                  threshold: WHO PM2.5 annual guideline (15 µg/m³).
-                </p>
-              </section>
-            )}
-
-            {/* ═══════════════════════════════════════════════════════════════
-                3c. 72-Hour Predictive Early Warning
-               ═══════════════════════════════════════════════════════════════ */}
-            {district.predictive_forecast && district.predictive_forecast.length > 0 && (
-              <section className="bg-bg-secondary border border-border-default rounded-xl p-5 space-y-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ShieldAlert className="h-5 w-5 text-orange-500" />
-                    <h3 className="font-bold text-text-primary">
-                      72-Hour Predictive Early Warning
-                    </h3>
-                  </div>
-                  <DataBadge
-                    type="estimated"
-                    className="text-[10px] bg-orange-500/10 text-orange-500 border-orange-500/20"
-                  >
-                    AI Forecast
-                  </DataBadge>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {district.predictive_forecast.map((forecast, idx) => {
-                    const dayLabel = idx === 0 ? "Tomorrow" : idx === 1 ? "Day 2" : "Day 3";
-                    const aqiColor = getAQICategory(forecast.aqi).color;
-                    
-                    return (
-                      <div key={idx} className="bg-bg-tertiary border border-border-subtle rounded-xl p-4 flex flex-col gap-2 relative overflow-hidden">
-                        {/* Decorative Top Border */}
-                        <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: aqiColor }} />
-                        
-                        <div className="flex justify-between items-start mt-1">
-                          <div>
-                            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">{dayLabel}</p>
-                            <p className="text-[10px] text-text-tertiary">{new Date(forecast.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric'})}</p>
-                          </div>
-                          <span 
-                            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                            style={{ backgroundColor: `${aqiColor}20`, color: aqiColor }}
-                          >
-                            AQI {forecast.aqi}
-                          </span>
-                        </div>
-
-                        <div className="flex items-baseline gap-1 mt-2">
-                          <span className="text-3xl font-black text-text-primary tracking-tight">{forecast.pm25}</span>
-                          <span className="text-xs text-text-tertiary">µg/m³</span>
-                        </div>
-
-                        {forecast.surgePercentage > 0 ? (
-                          <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded-md">
-                            <Activity className="h-3 w-3" />
-                            Projected Surge: +{forecast.surgePercentage}%
-                          </div>
-                        ) : (
-                          <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold text-green-500 bg-green-500/10 px-2 py-1 rounded-md">
-                            <Activity className="h-3 w-3" />
-                            No Surge Expected
-                          </div>
-                        )}
-
-                        <p className="text-[11px] text-text-secondary leading-relaxed mt-2 border-t border-border-subtle pt-2">
-                          {forecast.weatherSummary}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
 
             {/* ═══════════════════════════════════════════════════════════════
                 4. Live Weather & 24-Hour Forecast
@@ -644,31 +509,6 @@ export default function DistrictPage() {
               </div>
             </section>
 
-            {/* ═══════════════════════════════════════════════════════════════
-                5.5 Policy Scenario Simulation & Evidence Brief
-               ═══════════════════════════════════════════════════════════════ */}
-            <section className="bg-bg-secondary border border-border-default rounded-xl p-5">
-              <button 
-                onClick={() => setIsSimulatorOpen(!isSimulatorOpen)}
-                className="flex items-center justify-between w-full text-left"
-              >
-                <div className="flex items-center gap-2">
-                  <SlidersHorizontal className="h-5 w-5 text-brand" />
-                  <h2 className="font-bold text-text-primary">Policy Scenario Simulation & Evidence Brief</h2>
-                </div>
-                {isSimulatorOpen ? <ChevronDown className="h-5 w-5 text-text-tertiary" /> : <ChevronUp className="h-5 w-5 text-text-tertiary" />}
-              </button>
-              
-              {isSimulatorOpen && (
-                <div className="mt-5 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <PolicyInterventionSimulator 
-                    currentPm25={effectivePm25 || 55.0} 
-                    districtPopulation={850000}
-                    districtName={district.name}
-                  />
-                </div>
-              )}
-            </section>
 
             {/* ═══════════════════════════════════════════════════════════════
                 6. Community Signal (Symptom Summary)

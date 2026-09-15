@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/header";
 import { useUserProfile } from "@/lib/hooks/use-user-profile";
 import { DistrictDetail, SafeTimeResult } from "@/lib/types";
 import { OutdoorTimer } from "@/components/features/outdoor-timer";
+import { SymptomReportModal } from "@/components/features/symptom-report-modal";
 import {
   Activity,
   Clock,
@@ -87,6 +88,7 @@ export default function PersonalizedDashboard() {
   const [district, setDistrict] = useState<DistrictDetail | null>(null);
   const [safeTime, setSafeTime] = useState<SafeTimeResult | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   useEffect(() => {
     if (profileLoading) return;
@@ -292,7 +294,7 @@ export default function PersonalizedDashboard() {
 
         {/* Pollutants Grid */}
         {district && (
-          <section className="pt-4">
+          <section className="pt-4 pb-20">
             <h2 className="text-xl font-bold text-text-primary mb-4">Local Pollutants ({district.name})</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {pollutants.map((p) => (
@@ -301,7 +303,34 @@ export default function PersonalizedDashboard() {
             </div>
           </section>
         )}
+
+        {/* Floating Report Button (Bottom Center) */}
+        <div className="fixed bottom-6 left-0 right-0 flex justify-center z-10 pointer-events-none">
+          <button
+            onClick={() => setIsReportModalOpen(true)}
+            className="pointer-events-auto bg-community hover:bg-community-text text-white font-semibold py-3 px-6 rounded-full shadow-elevated flex items-center gap-2 transition-transform hover:scale-105"
+          >
+            <span className="relative flex h-3 w-3 mr-1">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-40"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+            </span>
+            Report Symptoms
+          </button>
+        </div>
+
       </main>
+
+      <SymptomReportModal
+        districtId={district?.district_id || ""}
+        districtName={district?.name || "your area"}
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        onSuccess={() => {
+          if (profile?.home_district_id) {
+            fetchDistrictData(profile.home_district_id);
+          }
+        }}
+      />
     </div>
   );
 }

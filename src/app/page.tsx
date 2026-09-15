@@ -6,7 +6,6 @@ import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MapWrapper } from "@/components/features/map-wrapper";
 import { SurgeAdvisoryBanner } from "@/components/ui/surge-advisory-banner";
-import { SymptomReportModal } from "@/components/features/symptom-report-modal";
 import { DistrictListItem, SurgeFlagItem } from "@/lib/types";
 import { MapPin } from "lucide-react";
 import { getNearestDistrictFromList } from "@/lib/utils/geolocation";
@@ -17,8 +16,6 @@ export default function DashboardPage() {
   const [districts, setDistricts] = useState<DistrictListItem[]>([]);
   const [surgeFlags, setSurgeFlags] = useState<SurgeFlagItem[]>([]);
   const [selectedDistrictId, setSelectedDistrictId] = useState<string | null>(null);
-  
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
@@ -145,34 +142,11 @@ export default function DashboardPage() {
             onDistrictSelect={handleDistrictSelect}
           />
 
-          {/* Floating Report Button (Bottom Center) */}
-          <div className="absolute bottom-6 left-0 right-0 flex justify-center z-10 pointer-events-none">
-            <button
-              onClick={() => setIsReportModalOpen(true)}
-              className="pointer-events-auto bg-community hover:bg-community-text text-white font-semibold py-3 px-6 rounded-full shadow-elevated flex items-center gap-2 transition-transform hover:scale-105"
-            >
-              <span className="relative flex h-3 w-3 mr-1">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-40"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
-              </span>
-              Report Symptoms
-            </button>
-          </div>
+
         </main>
       </div>
 
-      <SymptomReportModal
-        districtId={selectedDistrictId || (districts[0]?.district_id || "")}
-        districtName={districts.find(d => d.district_id === selectedDistrictId)?.name || "your area"}
-        isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-        onSuccess={() => {
-          // Re-fetch data on success to show updated UI
-          fetch("/api/v1/districts").then(r => r.json()).then(j => {
-            if (j.success) setDistricts(j.data);
-          });
-        }}
-      />
+
     </div>
   );
 }

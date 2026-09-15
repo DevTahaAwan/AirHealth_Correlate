@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/client";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/utils/admin-auth";
+import { pm25FromAQI } from "@/lib/utils/epa-aqi";
+import { calculateDLNM, type DLNMResult } from "@/lib/services/dlnm-engine";
+import { generate72HourForecast, type WeatherForecastInput } from "@/lib/services/aqi-forecaster";
 
 export const dynamic = 'force-dynamic';
 
@@ -87,13 +90,78 @@ export async function GET() {
       }
     }
 
+    // 4. Fetch Weather Data (Lahore Central)
+    const lat = 31.5204;
+    const lng = 74.3587;
+    let weatherContext = { temperature: 28, humidity: 55, windSpeed: 0, precipitation: 0 };
+    let predictiveForecast = undefined;
+    let dlnmResult: DLNMResult | undefined;
+
+    try {
+      const meteoRes = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation&daily=temperature_2m_max,temperature_2m_min,wind_speed_10m_max,precipitation_sum&timezone=auto&forecast_days=4`
+      );
+      
+      if (meteoRes.ok) {
+        const meteoJson = await meteoRes.json();
+        if (meteoJson.current) {
+          weatherContext = {
+            temperature: meteoJson.current.temperature_2m || 28,
+            humidity: meteoJson.current.relative_humidity_2m || 55,
+            windSpeed: meteoJson.current.wind_speed_10m || 0,
+            precipitation: meteoJson.current.precipitation || 0,
+          };
+        }
+        
+        const currentPm25 = (cityAqiAverage > 0 ? pm25FromAQI(cityAqiAverage) : null) ?? 55.0;
+        
+        // Predictive Forecast
+        if (meteoJson.daily && meteoJson.daily.time) {
+          const inputs: WeatherForecastInput[] = [];
+          for (let i = 1; i <= 3; i++) {
+            if (meteoJson.daily.time[i]) {
+              inputs.push({
+                date: meteoJson.daily.time[i],
+                minTemp: meteoJson.daily.temperature_2m_min[i],
+                maxTemp: meteoJson.daily.temperature_2m_max[i],
+                windSpeed: meteoJson.daily.wind_speed_10m_max[i],
+                precipitation: meteoJson.daily.precipitation_sum[i],
+              });
+            }
+          }
+          predictiveForecast = generate72HourForecast(currentPm25, inputs);
+        }
+
+        // DLNM - Simplified 6-day history (using current as baseline with slight decay)
+        // For a true dashboard we'd query historical averages, but for real-time we'll approximate the past 6 days
+        // based on the current city average.
+        const pm25History = [];
+        let historicalPm25 = currentPm25;
+        for (let d = 0; d < 6; d++) {
+          pm25History.push(historicalPm25);
+          historicalPm25 = historicalPm25 * 0.95; // 5% decay assumption for past days
+        }
+
+        dlnmResult = calculateDLNM({
+          pm25History,
+          temperature: weatherContext.temperature,
+          humidity: weatherContext.humidity,
+          monthIndex: new Date().getMonth(),
+        });
+      }
+    } catch (err) {
+      console.error("Failed to generate predictive metrics", err);
+    }
+
     return NextResponse.json({
       success: true,
       data: {
         totalReportsToday,
         mostAffectedDistrict,
         mostAffectedCount: maxCount,
-        cityAqiAverage
+        cityAqiAverage,
+        dlnm: dlnmResult,
+        predictive_forecast: predictiveForecast
       }
     });
   } catch (error) {
