@@ -15,8 +15,12 @@ import {
   CloudRain,
   AlertTriangle,
   BarChart3,
+  ChevronDown,
+  ChevronUp,
+  SlidersHorizontal
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PolicyInterventionSimulator } from "@/components/features/policy-intervention-simulator";
 import {
   DistrictDetail,
   DistrictListItem,
@@ -98,6 +102,7 @@ export default function DistrictPage() {
   const [safeTime, setSafeTime] = useState<SafeTimeResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [districtId, setDistrictId] = useState<string | null>(null);
+  const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
 
   // Find the district by slug from the list API
   useEffect(() => {
@@ -708,6 +713,32 @@ export default function DistrictPage() {
                   currentAqi={district.aqi}
                 />
               </div>
+            </section>
+
+            {/* ═══════════════════════════════════════════════════════════════
+                5.5 Policy Scenario Simulation & Evidence Brief
+               ═══════════════════════════════════════════════════════════════ */}
+            <section className="bg-bg-secondary border border-border-default rounded-xl p-5">
+              <button 
+                onClick={() => setIsSimulatorOpen(!isSimulatorOpen)}
+                className="flex items-center justify-between w-full text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <SlidersHorizontal className="h-5 w-5 text-brand" />
+                  <h2 className="font-bold text-text-primary">Policy Scenario Simulation & Evidence Brief</h2>
+                </div>
+                {isSimulatorOpen ? <ChevronDown className="h-5 w-5 text-text-tertiary" /> : <ChevronUp className="h-5 w-5 text-text-tertiary" />}
+              </button>
+              
+              {isSimulatorOpen && (
+                <div className="mt-5 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <PolicyInterventionSimulator 
+                    currentPm25={effectivePm25 || 55.0} 
+                    districtPopulation={850000}
+                    districtName={district.name}
+                  />
+                </div>
+              )}
             </section>
 
             {/* ═══════════════════════════════════════════════════════════════

@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { Activity, MapPin, AlertCircle, Loader2, Users } from "lucide-react";
-
+import { Activity, MapPin, AlertCircle, Loader2, Users, ChevronUp, ChevronDown, SlidersHorizontal } from "lucide-react";
+import { pm25FromAQI } from "@/lib/utils/epa-aqi";
+import { PolicyInterventionSimulator } from "@/components/features/policy-intervention-simulator";
 // Dynamically import the Leaflet heatmap to avoid SSR issues
 const AdminHeatmap = dynamic(
   () => import("@/components/features/admin-heatmap"),
@@ -36,6 +37,7 @@ export default function AdminPage() {
   const [demographics, setDemographics] = useState<DemographicData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
 
   useEffect(() => {
     async function fetchAdminData() {
@@ -157,6 +159,30 @@ export default function AdminPage() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Bottom Overlay: Simulator */}
+      <div className="absolute bottom-4 left-4 z-10 pointer-events-auto flex flex-col gap-2 max-w-[900px] w-[calc(100vw-32px)]">
+        <button 
+          onClick={() => setIsSimulatorOpen(!isSimulatorOpen)}
+          className="bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-xl p-3 shadow-xl flex items-center justify-between text-slate-200 hover:bg-slate-800 transition-colors w-full sm:w-80"
+        >
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4 text-brand" />
+            <span className="font-bold text-sm">Policy Interventions</span>
+          </div>
+          {isSimulatorOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+        </button>
+        
+        {isSimulatorOpen && metrics && (
+          <div className="animate-in slide-in-from-bottom-2 fade-in duration-200">
+            <PolicyInterventionSimulator 
+              currentPm25={pm25FromAQI(metrics.cityAqiAverage) || 55.0} 
+              districtPopulation={demographics.reduce((acc, d) => acc + d.totalVulnerable, 0) || 850000}
+              districtName="Lahore Citywide"
+            />
+          </div>
+        )}
       </div>
 
       {/* Map Container */}
