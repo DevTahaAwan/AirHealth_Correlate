@@ -2,16 +2,14 @@
 
 import React from "react";
 import Link from "next/link";
-import { Wind, ShieldAlert, Users, LayoutDashboard, Settings, SlidersHorizontal, LogOut } from "lucide-react";
+import { Wind, ShieldAlert, LayoutDashboard, SlidersHorizontal, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { useToast } from "@/lib/hooks/use-toast";
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { showToast } = useToast();
 
   const handleLogout = async () => {
     try {
@@ -42,39 +40,6 @@ export default function AdminLayout({
           <Link href="/admin/policy" className="flex items-center gap-3 px-3 py-2 text-slate-400 hover:bg-slate-800 hover:text-white rounded-md font-medium text-sm transition-colors">
             <SlidersHorizontal className="h-4 w-4" />
             Policy Simulator
-          </Link>
-          <Link 
-            href="#" 
-            onClick={(e) => {
-              e.preventDefault();
-              showToast({ title: 'Module in Development', message: 'This feature is locked for the hackathon prototype.', variant: 'default' });
-            }}
-            className="flex items-center gap-3 px-3 py-2 text-slate-400 hover:bg-slate-800 hover:text-white rounded-md font-medium text-sm transition-colors"
-          >
-            <ShieldAlert className="h-4 w-4" />
-            Alert Management
-          </Link>
-          <Link 
-            href="#" 
-            onClick={(e) => {
-              e.preventDefault();
-              showToast({ title: 'Module in Development', message: 'This feature is locked for the hackathon prototype.', variant: 'default' });
-            }}
-            className="flex items-center gap-3 px-3 py-2 text-slate-400 hover:bg-slate-800 hover:text-white rounded-md font-medium text-sm transition-colors"
-          >
-            <Users className="h-4 w-4" />
-            User Insights
-          </Link>
-          <Link 
-            href="#" 
-            onClick={(e) => {
-              e.preventDefault();
-              showToast({ title: 'Module in Development', message: 'This feature is locked for the hackathon prototype.', variant: 'default' });
-            }}
-            className="flex items-center gap-3 px-3 py-2 text-slate-400 hover:bg-slate-800 hover:text-white rounded-md font-medium text-sm transition-colors"
-          >
-            <Settings className="h-4 w-4" />
-            System Settings
           </Link>
         </nav>
 

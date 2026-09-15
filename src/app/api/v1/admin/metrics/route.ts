@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { MockDataStore } from "@/lib/store";
+import { getSupabaseAdmin } from "@/lib/supabase/client";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/utils/admin-auth";
 
@@ -7,29 +7,37 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const supabase = createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const supabaseClient = createSupabaseServerClient();
+    const { data: { user } } = await supabaseClient.auth.getUser();
 
     if (!user || !isAdminEmail(user.email)) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const allReports = await MockDataStore.getAllSymptomReports();
-    const districts = await MockDataStore.getDistrictList();
-    
-    // Filter reports for today
-    const now = new Date();
-    const todayStr = now.toISOString().split("T")[0];
-    
-    const todayReports = allReports.filter(r => r.reported_at.startsWith(todayStr));
-    const totalReportsToday = todayReports.length;
-    
-    // Most affected district
+    const supabase = getSupabaseAdmin();
+    const today = new Date().toISOString().split("T")[0];
+
+    // 1. Total reports today
+    const { data: todayReports } = await supabase
+      .from("symptom_reports")
+      .select("device_id, district_id")
+      .eq("reported_at", today);
+
+    let totalReportsToday = 0;
     const districtCounts: Record<string, number> = {};
-    todayReports.forEach(r => {
-      districtCounts[r.district_id] = (districtCounts[r.district_id] || 0) + 1;
-    });
-    
+    if (todayReports) {
+      const uniqueReports = new Set<string>();
+      todayReports.forEach(r => {
+        const key = `${r.device_id}-${r.district_id}`;
+        if (!uniqueReports.has(key)) {
+          uniqueReports.add(key);
+          districtCounts[r.district_id] = (districtCounts[r.district_id] || 0) + 1;
+        }
+      });
+      totalReportsToday = uniqueReports.size;
+    }
+
+    // 2. Most affected district
     let maxCount = 0;
     let mostAffectedDistrictId = "";
     Object.entries(districtCounts).forEach(([dId, count]) => {
@@ -38,14 +46,46 @@ export async function GET() {
         mostAffectedDistrictId = dId;
       }
     });
+
+    let mostAffectedDistrict = "None";
+    if (mostAffectedDistrictId) {
+      const { data: districtRow } = await supabase
+        .from("districts")
+        .select("name")
+        .eq("id", mostAffectedDistrictId)
+        .single();
+      if (districtRow) {
+        mostAffectedDistrict = districtRow.name;
+      }
+    }
+
+    // 3. City-wide AQI Average
+    const { data: stations } = await supabase.from("stations").select("id");
     
-    const mostAffectedDistrict = districts.find(d => d.district_id === mostAffectedDistrictId)?.name || "None";
-    
-    // City-wide AQI Average
-    const validAqis = districts.filter(d => d.aqi !== null).map(d => d.aqi as number);
-    const aqiAverage = validAqis.length > 0 
-      ? Math.round(validAqis.reduce((a,b) => a+b, 0) / validAqis.length) 
-      : 0;
+    let cityAqiAverage = 0;
+    if (stations && stations.length > 0) {
+      const aqiValues: number[] = [];
+      
+      // Fetch latest reading for all stations
+      for (const station of stations) {
+        const { data: latestReading } = await supabase
+          .from("aqi_readings")
+          .select("aqi_value")
+          .eq("station_id", station.id)
+          .not("aqi_value", "is", null)
+          .order("recorded_at", { ascending: false })
+          .limit(1)
+          .single();
+          
+        if (latestReading && latestReading.aqi_value) {
+          aqiValues.push(latestReading.aqi_value);
+        }
+      }
+      
+      if (aqiValues.length > 0) {
+        cityAqiAverage = Math.round(aqiValues.reduce((a, b) => a + b, 0) / aqiValues.length);
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -53,7 +93,7 @@ export async function GET() {
         totalReportsToday,
         mostAffectedDistrict,
         mostAffectedCount: maxCount,
-        cityAqiAverage: aqiAverage
+        cityAqiAverage
       }
     });
   } catch (error) {

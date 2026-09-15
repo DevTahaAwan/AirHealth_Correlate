@@ -54,8 +54,7 @@ interface PollutantCardProps {
   accentColor: string;
 }
 
-function PollutantCard({ name, value, unit, subAqi, icon, accentColor }: PollutantCardProps) {
-  const subAqiLabel = subAqi !== null ? getAQICategory(subAqi).label : null;
+function PollutantCard({ name, value, unit, icon, accentColor }: PollutantCardProps) {
 
   return (
     <div className="bg-bg-secondary border border-border-default rounded-xl p-4 flex flex-col gap-2 hover:shadow-elevated transition-shadow duration-200">
@@ -66,17 +65,6 @@ function PollutantCard({ name, value, unit, subAqi, icon, accentColor }: Polluta
           </div>
           <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">{name}</span>
         </div>
-        {subAqi !== null && (
-          <span
-            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-            style={{
-              backgroundColor: `${getAQICategory(subAqi).color}20`,
-              color: getAQICategory(subAqi).color,
-            }}
-          >
-            AQI {subAqi}
-          </span>
-        )}
       </div>
       <div className="flex items-baseline gap-1.5">
         <span className="text-2xl font-black text-text-primary tracking-tight">
@@ -84,9 +72,6 @@ function PollutantCard({ name, value, unit, subAqi, icon, accentColor }: Polluta
         </span>
         <span className="text-xs text-text-tertiary">{value !== null ? unit : "N/A"}</span>
       </div>
-      {subAqiLabel && (
-        <span className="text-[10px] text-text-tertiary">{subAqiLabel}</span>
-      )}
     </div>
   );
 }
@@ -463,63 +448,7 @@ export default function DistrictPage() {
                   </p>
                 </div>
 
-                {/* Cumulative vs Unlagged Comparison */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-bg-tertiary border border-border-subtle rounded-lg p-4 text-center">
-                    <span className="text-2xl font-black text-text-primary tracking-tight">
-                      {district.dlnm.cumulativeRR}x
-                    </span>
-                    <p className="text-[10px] text-text-tertiary mt-1 font-semibold uppercase tracking-wider">
-                      Cumulative 5-Day RR
-                    </p>
-                  </div>
-                  <div className="bg-bg-tertiary border border-border-subtle rounded-lg p-4 text-center">
-                    <span className="text-2xl font-black text-text-secondary tracking-tight">
-                      {district.dlnm.unlaggedRR}x
-                    </span>
-                    <p className="text-[10px] text-text-tertiary mt-1 font-semibold uppercase tracking-wider">
-                      Unlagged (Same-Day)
-                    </p>
-                  </div>
-                </div>
 
-                {/* 5-Day Lag Distribution Bar */}
-                <div>
-                  <h4 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-3">
-                    5-Day Lag Response Distribution
-                  </h4>
-                  <div className="space-y-2">
-                    {district.dlnm.lagContributions.map((lag) => {
-                      const maxEffect = Math.max(
-                        ...district.dlnm!.lagContributions.map((l) => l.effect),
-                        0.001
-                      );
-                      const barWidth = Math.max(4, (lag.effect / maxEffect) * 100);
-                      return (
-                        <div key={lag.day} className="flex items-center gap-3">
-                          <span className="text-[10px] font-mono text-text-tertiary w-10 shrink-0">
-                            {lag.day}
-                          </span>
-                          <div className="flex-1 bg-bg-tertiary rounded-full h-5 overflow-hidden relative">
-                            <div
-                              className="h-full rounded-full transition-all duration-500"
-                              style={{
-                                width: `${barWidth}%`,
-                                background:
-                                  lag.day === "Day 1"
-                                    ? "linear-gradient(90deg, #ef4444, #f97316)"
-                                    : "linear-gradient(90deg, #3b82f6, #6366f1)",
-                              }}
-                            />
-                            <span className="absolute inset-0 flex items-center px-2 text-[9px] font-bold text-text-primary">
-                              w={lag.weight} · {lag.pm25} µg/m³
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
 
                 {/* Confounder Control Badges */}
                 <div className="flex flex-wrap gap-2">

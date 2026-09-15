@@ -78,7 +78,10 @@ export default function DashboardPage() {
         setIsDetectingLocation(false);
       }, (geoError) => {
         if (geoError.code === geoError.PERMISSION_DENIED) {
-          window.alert("Location access is denied. Please enable location permissions in your browser or device settings, then try again.");
+          if (!sessionStorage.getItem("location_nag_dismissed")) {
+            window.alert("Location access is denied. Please enable location permissions in your browser or device settings, then try again.");
+            sessionStorage.setItem("location_nag_dismissed", "true");
+          }
         }
         if (!isAuto) setLocationError("Location access denied. Please enable permissions in your browser settings.");
         setIsDetectingLocation(false);
