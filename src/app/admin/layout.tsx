@@ -10,7 +10,7 @@ export default function AdminLayout({
   return (
     <div className="flex h-screen overflow-hidden bg-slate-950 text-slate-50 font-inter">
       {/* Sidebar */}
-      <aside className="w-64 border-r border-slate-800 bg-slate-900 flex flex-col hidden md:flex">
+      <aside className="w-64 border-r border-slate-800 bg-slate-900 flex flex-col hidden md:flex relative z-[999]">
         <div className="h-16 flex items-center px-6 border-b border-slate-800">
           <Link href="/" className="flex items-center gap-2">
             <Wind className="h-6 w-6 text-emerald-500" />
