@@ -87,6 +87,18 @@ export default function OnboardingPage() {
 
   const handleSave = async () => {
     if (!user) return;
+    
+    // SpO2 Validation: Must be between 70 and 100
+    const spo2Num = baselineSpo2 ? parseInt(baselineSpo2, 10) : null;
+    if (spo2Num !== null && (isNaN(spo2Num) || spo2Num < 70 || spo2Num > 100)) {
+      showToast({
+        title: "Invalid SpO2",
+        message: "Please enter a valid baseline SpO₂ between 70% and 100%.",
+        variant: "error"
+      });
+      return;
+    }
+    
     setIsSaving(true);
     
     try {
@@ -277,7 +289,7 @@ export default function OnboardingPage() {
               <label className="block text-sm font-bold text-text-primary mb-2">Baseline SpO₂ %</label>
               <input
                 type="number"
-                min="0"
+                min="70"
                 max="100"
                 value={baselineSpo2}
                 onChange={(e) => setBaselineSpo2(e.target.value)}
