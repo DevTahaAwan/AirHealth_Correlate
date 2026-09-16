@@ -180,6 +180,28 @@ export async function GET(request: Request) {
     }
   }
 
+  // 4d. Always attempt to supplement gas pollutants (CO, SO2, NO2, O3) from AQICN,
+  // since EPD Punjab and IQAir never provide these values regardless of which
+  // source won for AQI/PM above.
+  if (baseCo === null && baseSo2 === null && baseNo2 === null && baseO3 === null) {
+    try {
+      const gasToken = process.env.AQICN_API_TOKEN;
+      if (gasToken) {
+        const gasRes = await fetch(`https://api.waqi.info/feed/@11423/?token=${gasToken}`);
+        const gasJson = (await gasRes.json()) as AqicnResponse;
+        if (gasJson.status === "ok") {
+          baseCo = gasJson.data.iaqi?.co?.v ?? null;
+          baseSo2 = gasJson.data.iaqi?.so2?.v ?? null;
+          baseNo2 = gasJson.data.iaqi?.no2?.v ?? null;
+          baseO3 = gasJson.data.iaqi?.o3?.v ?? null;
+          console.log("Supplementary AQICN gas fetch successful.");
+        }
+      }
+    } catch (error) {
+      console.error("Supplementary AQICN gas fetch failed:", error);
+    }
+  }
+
   // 4c. Data Fallback (Prevent "N/A" and Wild Fluctuations)
   const { data: lastReading } = await supabase
     .from("aqi_readings")
