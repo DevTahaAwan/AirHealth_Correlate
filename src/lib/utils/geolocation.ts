@@ -1,4 +1,3 @@
-import { mockDistricts } from "@/data/districts";
 
 // Haversine formula to calculate distance between two coordinates in kilometers
 function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -61,18 +60,23 @@ export async function getNearestDistrict(): Promise<{ district_id: string; name:
     throw new Error("Geolocation is not supported by your browser");
   }
 
+  const res = await fetch("/api/v1/districts");
+  const json = await res.json();
+  if (!json.success || !Array.isArray(json.data)) {
+    throw new Error("Failed to load district list");
+  }
+  const realDistricts = json.data.map((d: { district_id: string; name: string; centroid_lat: number; centroid_lng: number }) => ({
+    district_id: d.district_id,
+    name: d.name,
+    centroid_lat: d.centroid_lat,
+    centroid_lng: d.centroid_lng,
+  }));
+
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        // Map mockDistricts to the shape expected by getNearestDistrictFromList
-        const mapped = mockDistricts.map(d => ({
-          district_id: d.id,
-          name: d.name,
-          centroid_lat: d.centroid_lat,
-          centroid_lng: d.centroid_lng,
-        }));
-        resolve(getNearestDistrictFromList(latitude, longitude, mapped));
+        resolve(getNearestDistrictFromList(latitude, longitude, realDistricts));
       },
       (error) => {
         reject(error);
