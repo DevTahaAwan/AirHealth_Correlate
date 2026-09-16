@@ -152,7 +152,12 @@ export function OutdoorTimer({ safeMinutes }: OutdoorTimerProps) {
       <div className="p-4 flex flex-col items-center">
         <h4 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-2">Outdoor Exposure Timer</h4>
         
-        <div className="text-5xl font-mono font-black text-text-primary my-2 tracking-tighter">
+        <div className={cn(
+          "text-5xl font-mono font-black my-2 tracking-tighter transition-colors",
+          isActive 
+            ? (progressPercent < 15 ? "text-error animate-pulse" : progressPercent < 35 ? "text-warning" : "text-success drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]") 
+            : "text-text-primary"
+        )}>
           {formatTime(timeRemaining)}
         </div>
         

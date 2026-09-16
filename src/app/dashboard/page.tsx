@@ -16,6 +16,7 @@ import {
   CloudRain,
   AlertTriangle,
   Loader2,
+  Stethoscope,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -140,6 +141,26 @@ export default function PersonalizedDashboard() {
     return null; // Will redirect in useEffect
   }
 
+  let precaution = "Standard WHO outdoor exercise guidelines. Stay hydrated and monitor for any discomfort.";
+  let precautionStyle = "bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-300";
+  let PrecautionIcon = Activity;
+
+  if (district) {
+    const hasAsthma = profile.conditions.includes("asthma");
+    const hasCopd = profile.conditions.includes("copd");
+    const aqi = district.aqi || 0;
+
+    if (hasAsthma && aqi > 100) {
+      precaution = "Keep rescue inhaler accessible. Limit aerobic exertion outdoors.";
+      precautionStyle = "bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400";
+      PrecautionIcon = ShieldAlert;
+    } else if (hasCopd) {
+      precaution = "High particulate concentration will cause airway constriction. Use HEPA filtration indoors.";
+      precautionStyle = "bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400";
+      PrecautionIcon = ShieldAlert;
+    }
+  }
+
   // Calculate pollutant values
   const effectivePm25 =
     district?.pm25 ??
@@ -245,9 +266,10 @@ export default function PersonalizedDashboard() {
 
         {district && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Safe Exposure Time */}
-            {safeTime && (
-              <div className="bg-bg-secondary border border-border-default rounded-xl p-6 shadow-sm">
+            {/* Safe Exposure Time & Precautions */}
+            <div className="flex flex-col gap-6">
+              {safeTime && (
+                <div className="bg-bg-secondary border border-border-default rounded-xl p-6 shadow-sm flex-1">
                 <div className="flex items-center gap-2 mb-4">
                   <Clock className="h-5 w-5 text-brand" />
                   <h3 className="font-bold text-text-primary text-lg">Safe Outdoor Time</h3>
@@ -269,24 +291,33 @@ export default function PersonalizedDashboard() {
                 <OutdoorTimer safeMinutes={safeTime.safe_minutes} />
               </div>
             )}
-
-            {/* AI Advisor Chatbot */}
-            <div className="bg-bg-secondary border border-border-default rounded-xl shadow-sm flex flex-col relative h-[500px] overflow-hidden">
-              <div className="flex items-center gap-2 p-4 border-b border-border-default bg-bg-tertiary">
-                <Activity className="h-5 w-5 text-emerald-500" />
-                <h3 className="font-bold text-text-primary">AI Health Advisor</h3>
+            
+            <div className={cn("border rounded-xl p-4 flex gap-3 items-start", precautionStyle)}>
+              <PrecautionIcon className="h-6 w-6 mt-0.5 shrink-0" />
+              <div>
+                <h4 className="font-bold mb-1">Precautionary Measures</h4>
+                <p className="font-medium text-sm leading-relaxed">{precaution}</p>
               </div>
-              <div className="flex-1 overflow-hidden relative">
-                <Chatbot 
-                  context={{
-                    userName: profile.full_name || "User",
-                    ageGroup: profile.age_group.replace("_", " "),
-                    conditions: profile.conditions.length > 0 ? profile.conditions.map(c => c.replace("_", " ")).join(", ") : "None",
-                    districtName: district.name,
-                    aqi: district.aqi || 0,
-                    pm25: district.pm25_value ?? effectivePm25
-                  }}
-                />
+            </div>
+            </div>
+
+            {/* Community Signal Card */}
+            <div className="bg-bg-secondary border border-border-default rounded-xl p-6 shadow-sm flex flex-col h-full">
+              <div className="flex items-center gap-2 mb-4">
+                <Activity className="h-5 w-5 text-community" />
+                <h3 className="font-bold text-text-primary text-lg">Community Signal</h3>
+              </div>
+              <div className="flex-1 flex flex-col justify-center">
+                <p className="text-text-secondary text-sm mb-6 leading-relaxed">
+                  Contribute to the real-time health map of {district.name}. Your anonymized symptom reports help us detect early pollution impacts and calibrate our models.
+                </p>
+                <button
+                  onClick={() => setIsReportModalOpen(true)}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-community hover:bg-community-text text-white rounded-lg font-semibold shadow-sm transition-all hover:scale-[1.02]"
+                >
+                  <Stethoscope className="h-5 w-5" />
+                  Report Symptoms
+                </button>
               </div>
             </div>
           </div>
@@ -304,22 +335,23 @@ export default function PersonalizedDashboard() {
           </section>
         )}
 
-        {/* Floating Report Button (Bottom Center) */}
-        <div className="fixed bottom-6 left-0 right-0 flex justify-center z-10 pointer-events-none">
-          <button
-            onClick={() => setIsReportModalOpen(true)}
-            className="pointer-events-auto bg-community hover:bg-community-text text-white font-semibold py-3 px-6 rounded-full shadow-elevated flex items-center gap-2 transition-transform hover:scale-105"
-          >
-            <span className="relative flex h-3 w-3 mr-1">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-40"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
-            </span>
-            Report Symptoms
-          </button>
-        </div>
-
       </main>
 
+      {/* Floating Chatbot */}
+      {district && (
+        <Chatbot
+          context={{
+            userName: profile.full_name || "User",
+            ageGroup: profile.age_group.replace("_", " "),
+            conditions: profile.conditions.length > 0 ? profile.conditions.map(c => c.replace("_", " ")).join(", ") : "None",
+            districtName: district.name,
+            aqi: district.aqi || 0,
+            pm25: district.pm25_value ?? effectivePm25
+          }}
+        />
+      )}
+
+      {/* Modals */}
       <SymptomReportModal
         districtId={district?.district_id || ""}
         districtName={district?.name || "your area"}

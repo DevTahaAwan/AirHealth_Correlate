@@ -99,7 +99,7 @@ export default function OnboardingPage() {
       localStorage.removeItem("airhealth_user_age");
       localStorage.removeItem("airhealth_user_exposure");
 
-      router.push("/");
+      router.push("/dashboard");
       router.refresh();
     } catch (error) {
       console.error("Failed to save profile:", error);

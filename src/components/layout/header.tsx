@@ -47,7 +47,7 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
 
       <nav className="hidden md:flex items-center gap-6 mx-6">
         <Link
-          href="/dashboard"
+          href={!user ? "/" : isAdmin ? "/admin" : "/dashboard"}
           className="text-sm font-medium text-text-secondary hover:text-brand transition-colors"
         >
           Dashboard
