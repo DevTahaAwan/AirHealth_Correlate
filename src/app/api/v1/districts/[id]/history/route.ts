@@ -64,8 +64,8 @@ export async function GET(
   // 4. Map to DistrictHistoryPoint
   const points: DistrictHistoryPoint[] = (historyData || []).map(row => ({
     date: row.date,
-    aqi: row.avg_aqi || 0,
-    pm25: row.avg_pm25 || 0,
+    aqi: row.avg_aqi ?? null,
+    pm25: row.avg_pm25 ?? null,
     symptom_report_count: row.total_symptom_reports || 0,
     has_aqi_data: row.avg_aqi !== null,
     precipitation_sum: precipitationMap[row.date] || 0,

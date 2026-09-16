@@ -95,8 +95,7 @@ export async function GET(
     current_no2: latestReading?.no2 ?? null,
     current_o3: latestReading?.o3 ?? null,
     last_updated: latestReading?.recorded_at ?? null,
-    current_risk_tier: latestReading ? getRiskTier(latestReading.aqi_value) : "low",
-    today_symptom_count: 0
+    current_risk_tier: latestReading ? getRiskTier(latestReading.aqi_value) : "low"
   };
 
   // 2. Fetch today's symptom aggregates
@@ -319,7 +318,7 @@ export async function GET(
     no2_value: district.current_no2 || null,
     o3_value: district.current_o3 || null,
     risk_tier: (district.current_risk_tier || "low") as RiskTier,
-    symptom_reports_today: district.today_symptom_count || 0,
+    symptom_reports_today: symptomSummary.total_today,
     has_aqi_data: district.current_aqi !== null,
     last_updated: district.last_updated || null,
     centroid_lat: district.centroid_lat || 31.5204,
