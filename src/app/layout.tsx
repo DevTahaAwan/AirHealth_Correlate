@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Fraunces } from "next/font/google";
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  variable: "--font-display",
+});
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { ToastProvider } from "@/lib/hooks/use-toast";
@@ -17,7 +24,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="antialiased font-inter bg-bg-primary text-text-primary">
+      <body className={`antialiased font-inter bg-bg-primary text-text-primary ${fraunces.variable}`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

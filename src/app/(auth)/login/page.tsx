@@ -68,7 +68,7 @@ function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full pl-10 pr-4 py-2 bg-bg-primary border border-border-default rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all text-text-primary"
+              className="w-full pl-10 pr-4 py-2 bg-bg-primary border border-border-default rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all text-text-primary"
               placeholder="you@example.com"
             />
           </div>
@@ -85,7 +85,7 @@ function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full pl-10 pr-4 py-2 bg-bg-primary border border-border-default rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all text-text-primary"
+              className="w-full pl-10 pr-4 py-2 bg-bg-primary border border-border-default rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all text-text-primary"
               placeholder="••••••••"
             />
           </div>
@@ -94,7 +94,7 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading || !email || !password}
-          className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md text-sm font-semibold text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-lg shadow-cyan-500/25 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all mt-6"
+          className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md text-sm font-semibold text-white bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 shadow-lg shadow-orange-500/25 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all mt-6"
         >
           {loading ? (
             <>
