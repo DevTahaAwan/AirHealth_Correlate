@@ -1,23 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
 import { Activity, MapPin, AlertCircle, Loader2, Users } from "lucide-react";
 import { DistributedLagDLNM } from "@/components/features/dlnm-widget";
 import { PredictiveForecast } from "@/components/features/predictive-forecast";
-import { DLNMResult, PredictiveForecastDay } from "@/lib/types";
-// Dynamically import the Leaflet heatmap to avoid SSR issues
-const AdminHeatmap = dynamic(
-  () => import("@/components/features/admin-heatmap"),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="h-full w-full flex items-center justify-center bg-slate-900 text-slate-500">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    )
-  }
-);
+import { DLNMResult, PredictiveForecastDay, DistrictListItem, SurgeFlagItem } from "@/lib/types";
+import { MapWrapper } from "@/components/features/map-wrapper";
 
 interface Metrics {
   totalReportsToday: number;
@@ -38,15 +26,20 @@ export default function AdminPage() {
   const [reports, setReports] = useState([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [demographics, setDemographics] = useState<DemographicData[]>([]);
+  const [districts, setDistricts] = useState<DistrictListItem[]>([]);
+  const [surgeFlags, setSurgeFlags] = useState<SurgeFlagItem[]>([]);
+  const [selectedDistrictId, setSelectedDistrictId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     async function fetchAdminData() {
       try {
-        const [reportsRes, metricsRes, demoRes] = await Promise.all([
+        const [reportsRes, metricsRes, demoRes, distRes, surgeRes] = await Promise.all([
           fetch("/api/v1/admin/reports"),
           fetch("/api/v1/admin/metrics"),
-          fetch("/api/v1/admin/demographics")
+          fetch("/api/v1/admin/demographics"),
+          fetch("/api/v1/districts"),
+          fetch("/api/v1/surge-flags")
         ]);
 
         if (!reportsRes.ok || !metricsRes.ok || !demoRes.ok) {
@@ -56,10 +49,14 @@ export default function AdminPage() {
         const reportsJson = await reportsRes.json();
         const metricsJson = await metricsRes.json();
         const demoJson = await demoRes.json();
+        const distJson = await distRes.json();
+        const surgeJson = await surgeRes.json();
 
         if (reportsJson.success) setReports(reportsJson.data);
         if (metricsJson.success) setMetrics(metricsJson.data);
         if (demoJson.success) setDemographics(demoJson.data);
+        if (distJson.success) setDistricts(distJson.data);
+        if (surgeJson.success) setSurgeFlags(surgeJson.data);
       } catch (err: unknown) {
         setError((err as Error).message || "Failed to load admin data");
       } finally {
@@ -167,7 +164,13 @@ export default function AdminPage() {
 
       {/* Map Container */}
       <div className="flex-1 relative">
-        <AdminHeatmap reports={reports} />
+        <MapWrapper
+          districts={districts}
+          surgeFlags={surgeFlags}
+          selectedDistrictId={selectedDistrictId}
+          onDistrictSelect={setSelectedDistrictId}
+          symptomReports={reports}
+        />
         
         {/* Right Side Tools Panel */}
         <div className="absolute top-0 right-0 bottom-0 w-[380px] bg-slate-900/95 backdrop-blur-md border-l border-slate-800 z-10 overflow-y-auto p-4 space-y-6">

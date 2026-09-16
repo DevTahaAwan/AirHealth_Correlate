@@ -9,9 +9,20 @@ import {
   LayersControl,
   LayerGroup,
   useMap,
+  Popup,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { DistrictListItem, RiskTier, SurgeFlagItem } from "@/lib/types";
+
+export interface SymptomReportMarker {
+  id: string;
+  lat: number;
+  lng: number;
+  district_name: string;
+  symptom: string;
+  severity: "mild" | "moderate" | "severe";
+  timestamp: string;
+}
 
 // ─── Constants ────────────────────────────────────────────────
 const LAHORE_CENTER: [number, number] = [31.5204, 74.3587];
@@ -107,6 +118,7 @@ interface DistrictMapClientProps {
   surgeFlags: SurgeFlagItem[];
   onDistrictSelect: (id: string) => void;
   selectedDistrictId: string | null;
+  symptomReports?: SymptomReportMarker[];
 }
 
 export function DistrictMapClient({
@@ -114,6 +126,7 @@ export function DistrictMapClient({
   surgeFlags,
   onDistrictSelect,
   selectedDistrictId,
+  symptomReports,
 }: DistrictMapClientProps) {
   return (
     <div className="w-full h-full relative z-0">
@@ -224,6 +237,30 @@ export function DistrictMapClient({
             );
           });
         })}
+
+        {/* ── 3. Overlay Layer: Real Symptom Report Markers (Admin only) ──── */}
+        {symptomReports && symptomReports.map((report) => (
+          <CircleMarker
+            key={`real-symptom-${report.id}`}
+            center={[report.lat, report.lng]}
+            radius={report.severity === "severe" ? 10 : report.severity === "moderate" ? 7 : 4}
+            pathOptions={{
+              color: report.severity === "severe" ? "#ef4444" : report.severity === "moderate" ? "#f97316" : "#eab308",
+              fillColor: report.severity === "severe" ? "#ef4444" : report.severity === "moderate" ? "#f97316" : "#eab308",
+              fillOpacity: 0.7,
+              weight: 1.5,
+            }}
+          >
+            <Popup>
+              <div className="p-1">
+                <p className="font-bold mb-1 uppercase tracking-wider text-xs border-b pb-1">{report.district_name}</p>
+                <p className="text-sm">Symptom: <span className="font-medium capitalize">{report.symptom.replace("_", " ")}</span></p>
+                <p className="text-sm">Severity: <span className="font-medium capitalize">{report.severity}</span></p>
+                <p className="text-[10px] text-slate-400 mt-2">{new Date(report.timestamp).toLocaleString()}</p>
+              </div>
+            </Popup>
+          </CircleMarker>
+        ))}
       </MapContainer>
     </div>
   );

@@ -27,6 +27,15 @@ interface MapWrapperProps {
   surgeFlags: SurgeFlagItem[];
   onDistrictSelect: (id: string) => void;
   selectedDistrictId: string | null;
+  symptomReports?: {
+    id: string;
+    lat: number;
+    lng: number;
+    district_name: string;
+    symptom: string;
+    severity: "mild" | "moderate" | "severe";
+    timestamp: string;
+  }[];
 }
 
 export function MapWrapper(props: MapWrapperProps) {
