@@ -20,7 +20,7 @@ export default function DashboardPage() {
   
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
-  const { toast } = useToast();
+  const { showToast } = useToast();
 
   // Phase 4: Monitor AQI for the currently selected district on dashboard
   useAqiMonitor(selectedDistrictId);
@@ -69,10 +69,10 @@ export default function DashboardPage() {
         setIsDetectingLocation(false);
       }, (geoError) => {
         if (geoError.code === geoError.PERMISSION_DENIED) {
-          toast({
+          showToast({
             title: "Location access denied",
-            description: "Please enable it in your browser settings.",
-            variant: "destructive",
+            message: "Please enable it in your browser settings.",
+            variant: "error",
           });
         }
         setLocationError("Location access denied. Please enable permissions in your browser settings.");

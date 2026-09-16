@@ -23,7 +23,7 @@ export default function OnboardingPage() {
 
   const { user, supabase } = useAuth();
   const { profile, loading: profileLoading } = useUserProfile();
-  const { toast } = useToast();
+  const { showToast } = useToast();
 
   const [fullName, setFullName] = useState("");
   const [selected, setSelected] = useState<RespiratoryCondition[]>([]);
@@ -131,10 +131,10 @@ export default function OnboardingPage() {
       }
     } catch (err) {
       if (err instanceof GeolocationPositionError && err.code === err.PERMISSION_DENIED) {
-        toast({
+        showToast({
           title: "Location access denied",
-          description: "Please enable it in your browser settings.",
-          variant: "destructive"
+          message: "Please enable it in your browser settings.",
+          variant: "error"
         });
       }
       setLocationError("Failed to get location. Please enable location services or select a district manually.");
