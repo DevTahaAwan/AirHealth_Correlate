@@ -34,10 +34,10 @@ export async function GET(request: Request) {
 
   const supabase = getSupabaseAdmin();
   
-  // 2. Fetch all stations from Supabase
+  // 2. Fetch all stations from Supabase, joined with their district's slug
   const { data: stations, error: stationsError } = await supabase
     .from("stations")
-    .select("id, district_id, external_station_id, name");
+    .select("id, district_id, external_station_id, name, districts(slug)");
 
   if (stationsError || !stations) {
     return NextResponse.json(
@@ -240,15 +240,27 @@ export async function GET(request: Request) {
     'iqbal-town': 1.05,
     'data-gunj-bakhsh-town': 1.05,
     'samanabad-town': 1.02,
-    'gulberg-town': 1.0,
+    'gulberg': 1.0,
     'johar-town': 0.98,
     'dha-lahore': 0.95,
     'model-town': 0.90,
     'cantt': 0.85,
+    'aziz-bhatti-town': 1.08,
+    'bahria-town': 0.92,
+    'nishtar-town': 1.12,
+    'shalimar-town': 1.0,
   };
 
   const aqiReadingsPayload = stations.map(station => {
-    const offset = districtModifiers[station.district_id] ?? 1.0;
+    const districtRelation = station.districts as { slug: string } | { slug: string }[] | null;
+    const districtSlug = Array.isArray(districtRelation)
+      ? districtRelation[0]?.slug
+      : districtRelation?.slug;
+    const offset = districtSlug ? (districtModifiers[districtSlug] ?? 1.0) : 1.0;
+
+    if (!districtSlug) {
+      console.warn(`Station ${station.id} (${station.name}) has no matching district slug — using neutral offset 1.0`);
+    }
     
     // 1. Restore Spatial Variance (Strict EPA Compliant)
     const modifiedPm25 = basePm25 !== null ? Math.max(0, Math.round(basePm25 * offset * 100) / 100) : null;
@@ -273,7 +285,7 @@ export async function GET(request: Request) {
 
   const { data: readings, error: readingsError } = await supabase
     .from("aqi_readings")
-    .insert(aqiReadingsPayload)
+    .upsert(aqiReadingsPayload, { onConflict: "station_id,recorded_at" })
     .select("id, station_id");
 
   if (readingsError) {
@@ -289,12 +301,6 @@ export async function GET(request: Request) {
       else fallbackCount++;
     } else {
       failCount++;
-      // If unique constraint violated (already fetched for this hour), treat as success for counts
-      if (readingsError?.code === '23505') {
-         status = "success";
-         successCount++;
-         failCount--;
-      }
     }
     
     return {
