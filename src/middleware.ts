@@ -79,8 +79,8 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith("/dashboard")) {
       const { data: profile } = await supabase
         .from("user_profiles")
-        .select("user_id, profile_completed")
-        .eq("user_id", user.id)
+        .select("auth_id, profile_completed")
+        .eq("auth_id", user.id)
         .single();
         
       if (!profile || !profile.profile_completed) {
@@ -93,7 +93,7 @@ export async function middleware(request: NextRequest) {
       const { data: profile } = await supabase
         .from("user_profiles")
         .select("profile_completed")
-        .eq("user_id", user.id)
+        .eq("auth_id", user.id)
         .single();
 
       if (profile?.profile_completed) {
