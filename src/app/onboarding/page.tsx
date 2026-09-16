@@ -103,7 +103,7 @@ export default function OnboardingPage() {
     
     try {
       const { error } = await supabase.from("user_profiles").upsert({
-        user_id: user.id,
+        auth_id: user.id,
         full_name: fullName,
         age_group: ageGroup,
         conditions: selected,
@@ -113,7 +113,7 @@ export default function OnboardingPage() {
         home_district_id: districtId,
         profile_completed: true,
         updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id" });
+      }, { onConflict: "auth_id" });
 
       if (error) throw error;
 
