@@ -5,8 +5,6 @@ import dynamic from "next/dynamic";
 import { Activity, MapPin, AlertCircle, Loader2, Users } from "lucide-react";
 import { DistributedLagDLNM } from "@/components/features/dlnm-widget";
 import { PredictiveForecast } from "@/components/features/predictive-forecast";
-import { PolicyInterventionSimulator } from "@/components/features/policy-intervention-simulator";
-import { pm25FromAQI } from "@/lib/utils/epa-aqi";
 import { DLNMResult, PredictiveForecastDay } from "@/lib/types";
 // Dynamically import the Leaflet heatmap to avoid SSR issues
 const AdminHeatmap = dynamic(
@@ -185,14 +183,6 @@ export default function AdminPage() {
           {metrics?.dlnm && (
             <DistributedLagDLNM dlnm={metrics.dlnm} />
           )}
-          
-          <div className="bg-slate-800/40 rounded-xl p-1 border border-slate-700/50">
-            <PolicyInterventionSimulator 
-              currentPm25={(metrics?.cityAqiAverage ? pm25FromAQI(metrics.cityAqiAverage) : null) ?? 55.0} 
-              districtPopulation={demographics.reduce((acc, d) => acc + d.totalVulnerable, 0) || 850000}
-              districtName="Lahore Citywide"
-            />
-          </div>
         </div>
       </div>
     </div>
