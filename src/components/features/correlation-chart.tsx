@@ -65,8 +65,6 @@ export function CorrelationChart({ districtId, currentAqi }: CorrelationChartPro
         const res = await fetch(`/api/v1/districts/${districtId}/history`);
         const json = await res.json();
         if (json.success && json.data.points && json.data.points.length > 0) {
-          // Reverse to chronological order for chart (oldest left, newest right)
-          json.data.points.reverse();
           setData(json.data);
         } else {
           // No historical data available — will use mock

@@ -89,10 +89,10 @@ export async function GET(request: Request) {
     baseAqi = epdData.aqi;
     basePm25 = epdData.pm25;
     basePm10 = epdData.pm10;
-    baseCo = epdData.co;
-    baseSo2 = epdData.so2;
-    baseNo2 = epdData.no2;
-    baseO3 = epdData.o3;
+    // Note: EPD Punjab gas pollutant fields (co, so2, no2, o3) are not used —
+    // confirmed to return implausible values (e.g. O3 in toxic-range ppm).
+    // Gas pollutants are estimated via heuristics on the frontend instead,
+    // clearly labeled as estimates, since no reliable live source is currently available.
     baseTime = new Date().toISOString();
     
     fetchSuccess = true;
