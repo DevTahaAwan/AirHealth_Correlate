@@ -169,7 +169,7 @@ export default function DistrictPage() {
   const isCoEstimated = district?.co_value == null;
   const displayCo = district?.co_value ?? Math.round(basePm25 * 10);
   const isO3Estimated = district?.o3_value == null;
-  const displayO3 = district?.o3_value ?? 25.0; // Standard background urban ozone
+  const displayO3 = district?.o3_value ?? 0.032; // ~32 ppb converted to ppm, standard background urban ozone
 
   // Build pollutant cards data
   const pollutants = district

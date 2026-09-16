@@ -269,7 +269,7 @@ export default function PersonalizedDashboard() {
   const displayCo = district?.co_value ?? Math.round(basePm25 * 10);
   
   const isO3Estimated = district?.o3_value == null;
-  const displayO3 = district?.o3_value ?? 25.0;
+  const displayO3 = district?.o3_value ?? 0.032; // ~32 ppb converted to ppm, standard background urban ozone
 
   const pollutants = district
     ? [
