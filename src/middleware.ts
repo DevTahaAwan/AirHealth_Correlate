@@ -75,16 +75,29 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // ── Onboarding check: if user has completed profile, redirect ──
+    // ── Onboarding check: redirect to onboarding if incomplete ──
     if (pathname.startsWith("/dashboard")) {
       const { data: profile } = await supabase
         .from("user_profiles")
-        .select("user_id")
+        .select("user_id, profile_completed")
         .eq("user_id", user.id)
         .single();
         
-      if (!profile) {
+      if (!profile || !profile.profile_completed) {
         return NextResponse.redirect(new URL("/onboarding", request.url));
+      }
+    }
+
+    // If they try to hit /onboarding but are already complete, send to dashboard
+    if (pathname === "/onboarding") {
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("profile_completed")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profile?.profile_completed) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
       }
     }
   }

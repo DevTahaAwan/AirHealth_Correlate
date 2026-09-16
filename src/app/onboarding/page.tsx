@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+
 import { Header } from "@/components/layout/header";
 import { RespiratoryCondition } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,7 @@ const CONDITIONS: { id: RespiratoryCondition; label: string; desc: string }[] = 
 ];
 
 export default function OnboardingPage() {
-  const router = useRouter();
+
   const { user, supabase } = useAuth();
   const { profile, loading: profileLoading } = useUserProfile();
 
@@ -27,6 +27,8 @@ export default function OnboardingPage() {
   const [selected, setSelected] = useState<RespiratoryCondition[]>([]);
   const [ageGroup, setAgeGroup] = useState<string>("adult");
   const [exposure, setExposure] = useState<string>("mostly_indoors");
+  const [rescueInhaler, setRescueInhaler] = useState<string>("never");
+  const [baselineSpo2, setBaselineSpo2] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   
   const [locationName, setLocationName] = useState<string | null>(null);
@@ -43,6 +45,11 @@ export default function OnboardingPage() {
       setSelected(profile.conditions || []);
       setAgeGroup(profile.age_group || "adult");
       setExposure(profile.exposure_level || "mostly_indoors");
+      // Use any to bypass TS error if type is missing, since we know it's in DB
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const p = profile as any;
+      setRescueInhaler(p.rescue_inhaler_usage || "never");
+      if (p.baseline_spo2) setBaselineSpo2(p.baseline_spo2.toString());
       setDistrictId(profile.home_district_id);
     } else {
       // Try to migrate from local storage
@@ -82,15 +89,17 @@ export default function OnboardingPage() {
     
     try {
       const { error } = await supabase.from("user_profiles").upsert({
-        auth_id: user.id,
+        user_id: user.id,
         full_name: fullName,
         age_group: ageGroup,
         conditions: selected,
         exposure_level: exposure,
+        rescue_inhaler_usage: rescueInhaler,
+        baseline_spo2: baselineSpo2 ? parseInt(baselineSpo2, 10) : null,
         home_district_id: districtId,
         profile_completed: true,
         updated_at: new Date().toISOString(),
-      }, { onConflict: "auth_id" });
+      }, { onConflict: "user_id" });
 
       if (error) throw error;
 
@@ -99,8 +108,8 @@ export default function OnboardingPage() {
       localStorage.removeItem("airhealth_user_age");
       localStorage.removeItem("airhealth_user_exposure");
 
-      router.push("/dashboard");
-      router.refresh();
+      // Hard redirect to clear Next.js router cache
+      window.location.href = "/dashboard";
     } catch (error) {
       console.error("Failed to save profile:", error);
       alert("Failed to save profile. Please try again.");
@@ -239,6 +248,40 @@ export default function OnboardingPage() {
                 {exp.label}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Medical Baselines */}
+        <div className="mb-10 p-6 bg-bg-secondary border border-border-default rounded-xl">
+          <h2 className="text-xl font-bold text-text-primary mb-4 flex items-center gap-2">
+            Clinical Baselines (Optional)
+          </h2>
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-bold text-text-primary mb-2">Rescue Inhaler Usage</label>
+              <select
+                value={rescueInhaler}
+                onChange={(e) => setRescueInhaler(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border border-border-default bg-bg-primary text-text-primary focus:border-brand outline-none"
+              >
+                <option value="never">Never</option>
+                <option value="weekly">Weekly</option>
+                <option value="daily">Daily</option>
+                <option value="multiple_daily">Multiple times a day</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-text-primary mb-2">Baseline SpO₂ %</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={baselineSpo2}
+                onChange={(e) => setBaselineSpo2(e.target.value)}
+                placeholder="e.g., 98"
+                className="w-full px-4 py-3 rounded-lg border border-border-default bg-bg-primary text-text-primary focus:border-brand outline-none"
+              />
+            </div>
           </div>
         </div>
 

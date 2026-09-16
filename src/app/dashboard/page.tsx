@@ -6,7 +6,6 @@ import { Header } from "@/components/layout/header";
 import { useUserProfile } from "@/lib/hooks/use-user-profile";
 import { DistrictDetail, SafeTimeResult } from "@/lib/types";
 import { OutdoorTimer } from "@/components/features/outdoor-timer";
-import { SymptomReportModal } from "@/components/features/symptom-report-modal";
 import {
   Activity,
   Clock,
@@ -78,6 +77,85 @@ function PollutantCard({ name, value, unit, subAqi, icon, accentColor }: Polluta
   );
 }
 
+// ─── Daily Log Card Component ─────────────────────────────────────────────────
+
+function DailyLogCard({ districtId, onSuccess }: { districtId: string, onSuccess: () => void }) {
+  const [cough, setCough] = useState(0);
+  const [breath, setBreath] = useState(0);
+  const [sputum, setSputum] = useState("none");
+  const [spo2, setSpo2] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleSubmit() {
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/v1/symptom-reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          district_id: districtId,
+          coughing_severity: cough,
+          shortness_of_breath_severity: breath,
+          sputum_color: sputum !== "none" ? sputum : undefined,
+          spo2: spo2 ? parseInt(spo2, 10) : undefined,
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Log submitted successfully!");
+        onSuccess();
+      } else {
+        alert(data.error?.message || "Failed to submit log");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error submitting log");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-xl p-6 shadow-sm flex flex-col h-full text-white">
+      <div className="flex items-center gap-2 mb-6">
+        <Activity className="h-5 w-5 text-cyan-400" />
+        <h3 className="font-bold text-lg">Daily Respiratory Check-in</h3>
+      </div>
+      
+      <div className="space-y-6 flex-1">
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-slate-200">Coughing Severity ({cough}/10)</label>
+          <input type="range" min="0" max="10" value={cough} onChange={e => setCough(Number(e.target.value))} className="w-full accent-cyan-500" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-slate-200">Shortness of Breath ({breath}/10)</label>
+          <input type="range" min="0" max="10" value={breath} onChange={e => setBreath(Number(e.target.value))} className="w-full accent-cyan-500" />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-slate-200">Sputum Color</label>
+            <select value={sputum} onChange={e => setSputum(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-cyan-500 outline-none">
+              <option value="none">None</option>
+              <option value="clear">Clear</option>
+              <option value="yellow">Yellow</option>
+              <option value="green">Green</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-slate-200">Today&apos;s SpO₂ %</label>
+            <input type="number" min="0" max="100" placeholder="e.g. 98" value={spo2} onChange={e => setSpo2(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-cyan-500 outline-none" />
+          </div>
+        </div>
+      </div>
+
+      <button onClick={handleSubmit} disabled={isSubmitting} className="mt-6 w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg font-semibold shadow-sm transition-all hover:scale-[1.02] disabled:opacity-50">
+        {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Stethoscope className="h-5 w-5" />}
+        Submit Log
+      </button>
+    </div>
+  );
+}
+
 // ─── Dashboard Page ─────────────────────────────────────────────────────────
 
 import { Chatbot } from "@/components/features/chatbot";
@@ -89,7 +167,6 @@ export default function PersonalizedDashboard() {
   const [district, setDistrict] = useState<DistrictDetail | null>(null);
   const [safeTime, setSafeTime] = useState<SafeTimeResult | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   useEffect(() => {
     if (profileLoading) return;
@@ -150,11 +227,15 @@ export default function PersonalizedDashboard() {
     const hasCopd = profile.conditions.includes("copd");
     const aqi = district.aqi || 0;
 
-    if (hasAsthma && aqi > 100) {
-      precaution = "Keep rescue inhaler accessible. Limit aerobic exertion outdoors.";
+    if (hasAsthma && aqi > 150) {
+      precaution = "Hazardous AQI: Keep rescue inhaler accessible. Limit aerobic exertion.";
+      precautionStyle = "bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400";
+      PrecautionIcon = ShieldAlert;
+    } else if (hasAsthma && aqi > 100) {
+      precaution = "Keep rescue inhaler accessible. Monitor for symptoms.";
       precautionStyle = "bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400";
       PrecautionIcon = ShieldAlert;
-    } else if (hasCopd) {
+    } else if (hasCopd && aqi > 100) {
       precaution = "High particulate concentration will cause airway constriction. Use HEPA filtration indoors.";
       precautionStyle = "bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400";
       PrecautionIcon = ShieldAlert;
@@ -246,20 +327,28 @@ export default function PersonalizedDashboard() {
             </p>
           </div>
 
-          <div className="bg-brand/10 border border-brand/20 rounded-xl p-4 flex gap-4 text-sm text-brand">
-            <div>
-              <span className="font-semibold block opacity-80 uppercase tracking-wider text-[10px]">Age Group</span>
-              <span className="font-medium capitalize">{profile.age_group.replace("_", " ")}</span>
-            </div>
-            <div className="w-px bg-brand/20"></div>
-            <div>
-              <span className="font-semibold block opacity-80 uppercase tracking-wider text-[10px]">Conditions</span>
-              <span className="font-medium capitalize">{profile.conditions.length > 0 ? profile.conditions.map(c => c.replace("_", " ")).join(", ") : "None"}</span>
-            </div>
-            <div className="w-px bg-brand/20"></div>
-            <div>
-              <span className="font-semibold block opacity-80 uppercase tracking-wider text-[10px]">Exposure</span>
-              <span className="font-medium capitalize">{profile.exposure_level.replace("_", " ")}</span>
+          <div className="flex gap-4">
+            {/* Live AQI Card */}
+            {district && (
+              <div className="bg-bg-secondary border border-border-default rounded-xl p-4 flex flex-col items-center justify-center shadow-sm min-w-[120px]">
+                <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-1">Live AQI</span>
+                <span className="text-4xl font-black tracking-tight" style={{ color: getAQICategory(district.aqi || 0).color }}>
+                  {district.aqi || "—"}
+                </span>
+                <span className="text-[10px] text-text-tertiary mt-1 font-semibold">{getAQICategory(district.aqi || 0).label}</span>
+              </div>
+            )}
+
+            <div className="bg-brand/10 border border-brand/20 rounded-xl p-4 flex flex-col justify-center gap-2 text-sm text-brand min-w-[150px]">
+              <div>
+                <span className="font-semibold block opacity-80 uppercase tracking-wider text-[10px]">Age Group</span>
+                <span className="font-medium capitalize">{profile.age_group.replace("_", " ")}</span>
+              </div>
+              <div className="w-full h-px bg-brand/20"></div>
+              <div>
+                <span className="font-semibold block opacity-80 uppercase tracking-wider text-[10px]">Conditions</span>
+                <span className="font-medium capitalize">{profile.conditions.length > 0 ? profile.conditions.map(c => c.replace("_", " ")).join(", ") : "None"}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -301,25 +390,15 @@ export default function PersonalizedDashboard() {
             </div>
             </div>
 
-            {/* Community Signal Card */}
-            <div className="bg-bg-secondary border border-border-default rounded-xl p-6 shadow-sm flex flex-col h-full">
-              <div className="flex items-center gap-2 mb-4">
-                <Activity className="h-5 w-5 text-community" />
-                <h3 className="font-bold text-text-primary text-lg">Community Signal</h3>
-              </div>
-              <div className="flex-1 flex flex-col justify-center">
-                <p className="text-text-secondary text-sm mb-6 leading-relaxed">
-                  Contribute to the real-time health map of {district.name}. Your anonymized symptom reports help us detect early pollution impacts and calibrate our models.
-                </p>
-                <button
-                  onClick={() => setIsReportModalOpen(true)}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-community hover:bg-community-text text-white rounded-lg font-semibold shadow-sm transition-all hover:scale-[1.02]"
-                >
-                  <Stethoscope className="h-5 w-5" />
-                  Report Symptoms
-                </button>
-              </div>
-            </div>
+            {/* Community Signal Card -> Replaced by 3-Second Daily Log */}
+            <DailyLogCard 
+              districtId={district.district_id} 
+              onSuccess={() => {
+                if (profile?.home_district_id) {
+                  fetchDistrictData(profile.home_district_id);
+                }
+              }} 
+            />
           </div>
         )}
 
@@ -351,18 +430,6 @@ export default function PersonalizedDashboard() {
         />
       )}
 
-      {/* Modals */}
-      <SymptomReportModal
-        districtId={district?.district_id || ""}
-        districtName={district?.name || "your area"}
-        isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-        onSuccess={() => {
-          if (profile?.home_district_id) {
-            fetchDistrictData(profile.home_district_id);
-          }
-        }}
-      />
     </div>
   );
 }

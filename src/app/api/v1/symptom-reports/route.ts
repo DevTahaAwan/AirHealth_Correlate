@@ -4,20 +4,19 @@ import { getSupabaseAdmin } from "@/lib/supabase/client";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
-const symptomEnum = z.enum([
-  "wheezing",
-  "coughing",
-  "shortness_of_breath",
-  "chest_tightness",
-  "inhaler_used",
-  "eye_irritation"
-]);
+
 
 const reportSchema = z.object({
   district_id: z.string().min(1),
-  symptoms: z.array(symptomEnum).min(1),
-  severity: z.number().min(1).max(10),
-  duration: z.string().min(1),
+  // Old format
+  symptoms: z.array(z.string()).optional(),
+  severity: z.number().optional(),
+  duration: z.string().optional(),
+  // New format
+  coughing_severity: z.number().optional(),
+  shortness_of_breath_severity: z.number().optional(),
+  sputum_color: z.string().optional(),
+  spo2: z.number().optional(),
 });
 
 export async function POST(request: Request) {
@@ -33,7 +32,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const { district_id, symptoms, severity, duration } = result.data;
+    const { 
+      district_id, symptoms, severity, duration, 
+      coughing_severity, shortness_of_breath_severity, sputum_color, spo2 
+    } = result.data;
+    
     const supabaseServer = createSupabaseServerClient();
     const { data: { session } } = await supabaseServer.auth.getSession();
 
@@ -68,17 +71,55 @@ export async function POST(request: Request) {
       );
     }
 
-    // Prepare rows to insert (one per symptom)
-    const rowsToInsert = symptoms.map(symptom => ({
-      user_id: uid,
-      reporter_name: name,
-      reporter_email: email,
-      district_id,
-      symptom,
-      severity,
-      duration,
-      reported_at: today
-    }));
+    // Prepare rows to insert
+    const rowsToInsert = [];
+    const aggregatedSymptoms: string[] = [];
+
+    // Handle new format
+    if (coughing_severity !== undefined || shortness_of_breath_severity !== undefined) {
+      const durationStr = "Daily Log";
+      if (coughing_severity && coughing_severity > 0) {
+        rowsToInsert.push({
+          user_id: uid, reporter_name: name, reporter_email: email,
+          district_id, symptom: "coughing", severity: coughing_severity, duration: durationStr,
+          reported_at: today, sputum_color, spo2
+        });
+        aggregatedSymptoms.push("coughing");
+      }
+      if (shortness_of_breath_severity && shortness_of_breath_severity > 0) {
+        rowsToInsert.push({
+          user_id: uid, reporter_name: name, reporter_email: email,
+          district_id, symptom: "shortness_of_breath", severity: shortness_of_breath_severity, duration: durationStr,
+          reported_at: today, sputum_color, spo2
+        });
+        aggregatedSymptoms.push("shortness_of_breath");
+      }
+      // If both 0 but they submitted, we just log an "inhaler_used" or "none" to save the spo2/sputum?
+      // Let's use "routine_log" so we don't drop the data
+      if (rowsToInsert.length === 0) {
+        rowsToInsert.push({
+          user_id: uid, reporter_name: name, reporter_email: email,
+          district_id, symptom: "routine_log", severity: 0, duration: durationStr,
+          reported_at: today, sputum_color, spo2
+        });
+      }
+    } 
+    // Handle old format fallback
+    else if (symptoms && symptoms.length > 0) {
+      for (const s of symptoms) {
+        rowsToInsert.push({
+          user_id: uid, reporter_name: name, reporter_email: email,
+          district_id, symptom: s, severity: severity || 1, duration: duration || "1 day",
+          reported_at: today
+        });
+        aggregatedSymptoms.push(s);
+      }
+    } else {
+      return NextResponse.json(
+        { success: false, error: { code: "BAD_REQUEST", message: "No symptoms provided." } },
+        { status: 400 }
+      );
+    }
 
     const { data, error } = await supabase
       .from("symptom_reports")
@@ -89,9 +130,8 @@ export async function POST(request: Request) {
       throw error;
     }
 
-    // Update aggregate counts so the district detail API immediately reflects the new report
-    for (const symptom of symptoms) {
-      // Try to increment existing aggregate row, or insert a new one
+    // Update aggregate counts
+    for (const symptom of aggregatedSymptoms) {
       const { data: existingAgg } = await supabase
         .from("district_symptom_daily_aggregates")
         .select("id, report_count, distinct_reporter_count")
