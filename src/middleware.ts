@@ -88,18 +88,7 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // If they try to hit /onboarding but are already complete, send to dashboard
-    if (pathname === "/onboarding") {
-      const { data: profile } = await supabase
-        .from("user_profiles")
-        .select("profile_completed")
-        .eq("auth_id", user.id)
-        .single();
 
-      if (profile?.profile_completed) {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-      }
-    }
   }
 
   // ── All other routes (/, /districts/*, /methodology, /api/*) ──────
