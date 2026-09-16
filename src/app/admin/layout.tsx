@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Wind, ShieldAlert, LayoutDashboard, SlidersHorizontal, LogOut } from "lucide-react";
+import { Wind, ShieldAlert, LayoutDashboard, SlidersHorizontal, LogOut, BarChart3 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 
 export default function AdminLayout({
@@ -36,6 +36,14 @@ export default function AdminLayout({
           <Link href="/admin" className="flex items-center gap-3 px-3 py-2 text-slate-400 hover:bg-slate-800 hover:text-white rounded-md font-medium text-sm transition-colors">
             <LayoutDashboard className="h-4 w-4" />
             Command Center
+          </Link>
+          <Link href="/admin/forecast" className="flex items-center gap-3 px-3 py-2 text-slate-400 hover:bg-slate-800 hover:text-white rounded-md font-medium text-sm transition-colors">
+            <ShieldAlert className="h-4 w-4" />
+            72-Hour Forecast
+          </Link>
+          <Link href="/admin/dlnm" className="flex items-center gap-3 px-3 py-2 text-slate-400 hover:bg-slate-800 hover:text-white rounded-md font-medium text-sm transition-colors">
+            <BarChart3 className="h-4 w-4" />
+            DLNM Analysis
           </Link>
           <Link href="/admin/policy" className="flex items-center gap-3 px-3 py-2 text-slate-400 hover:bg-slate-800 hover:text-white rounded-md font-medium text-sm transition-colors">
             <SlidersHorizontal className="h-4 w-4" />
