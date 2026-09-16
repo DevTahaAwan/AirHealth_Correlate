@@ -9,6 +9,7 @@ import { CheckCircle2, Loader2, MapPin } from "lucide-react";
 import { getNearestDistrict } from "@/lib/utils/geolocation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useUserProfile } from "@/lib/hooks/use-user-profile";
+import { useToast } from "@/lib/hooks/use-toast";
 
 const CONDITIONS: { id: RespiratoryCondition; label: string; desc: string }[] = [
   { id: "asthma", label: "Asthma", desc: "Chronic inflammatory disease of the airways." },
@@ -22,6 +23,7 @@ export default function OnboardingPage() {
 
   const { user, supabase } = useAuth();
   const { profile, loading: profileLoading } = useUserProfile();
+  const { toast } = useToast();
 
   const [fullName, setFullName] = useState("");
   const [selected, setSelected] = useState<RespiratoryCondition[]>([]);
@@ -129,10 +131,11 @@ export default function OnboardingPage() {
       }
     } catch (err) {
       if (err instanceof GeolocationPositionError && err.code === err.PERMISSION_DENIED) {
-        if (!sessionStorage.getItem("location_nag_dismissed")) {
-          window.alert("Location access is denied. Please enable location permissions in your browser or device settings, then try again.");
-          sessionStorage.setItem("location_nag_dismissed", "true");
-        }
+        toast({
+          title: "Location access denied",
+          description: "Please enable it in your browser settings.",
+          variant: "destructive"
+        });
       }
       setLocationError("Failed to get location. Please enable location services or select a district manually.");
     } finally {

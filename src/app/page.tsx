@@ -10,6 +10,7 @@ import { DistrictListItem, SurgeFlagItem } from "@/lib/types";
 import { MapPin } from "lucide-react";
 import { getNearestDistrictFromList } from "@/lib/utils/geolocation";
 import { useAqiMonitor } from "@/lib/hooks/use-aqi-monitor";
+import { useToast } from "@/lib/hooks/use-toast";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function DashboardPage() {
   
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const { toast } = useToast();
 
   // Phase 4: Monitor AQI for the currently selected district on dashboard
   useAqiMonitor(selectedDistrictId);
@@ -44,20 +46,12 @@ export default function DashboardPage() {
     fetchInitialData();
   }, []);
 
-  // Auto-detect location on mount if permitted, or prompt
-  useEffect(() => {
-    handleDetectLocation(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleDetectLocation = (isAuto = false) => {
-    if (!isAuto) {
-      setIsDetectingLocation(true);
-      setLocationError(null);
-    }
+  const handleDetectLocation = () => {
+    setIsDetectingLocation(true);
+    setLocationError(null);
     try {
       if (!navigator.geolocation) {
-        if (!isAuto) setLocationError("Geolocation is not supported");
+        setLocationError("Geolocation is not supported");
         setIsDetectingLocation(false);
         return;
       }
@@ -70,22 +64,23 @@ export default function DashboardPage() {
           setSelectedDistrictId(nearest.district_id);
           setLocationError(null);
         } else {
-          if (!isAuto) setLocationError("Could not find a nearby district.");
+          setLocationError("Could not find a nearby district.");
         }
         setIsDetectingLocation(false);
       }, (geoError) => {
         if (geoError.code === geoError.PERMISSION_DENIED) {
-          if (!sessionStorage.getItem("location_nag_dismissed")) {
-            window.alert("Location access is denied. Please enable location permissions in your browser or device settings, then try again.");
-            sessionStorage.setItem("location_nag_dismissed", "true");
-          }
+          toast({
+            title: "Location access denied",
+            description: "Please enable it in your browser settings.",
+            variant: "destructive",
+          });
         }
-        if (!isAuto) setLocationError("Location access denied. Please enable permissions in your browser settings.");
+        setLocationError("Location access denied. Please enable permissions in your browser settings.");
         setIsDetectingLocation(false);
       });
       
     } catch {
-      if (!isAuto) setLocationError("Location access failed.");
+      setLocationError("Location access failed.");
       setIsDetectingLocation(false);
     }
   };
@@ -120,7 +115,7 @@ export default function DashboardPage() {
             {/* Location Detection Button (if error or manual trigger) */}
             <div className="pointer-events-auto flex flex-col items-center">
               <button 
-                onClick={() => handleDetectLocation(false)}
+                onClick={handleDetectLocation}
                 disabled={isDetectingLocation}
                 className="bg-bg-secondary text-text-primary shadow-elevated rounded-full px-4 py-2 text-sm font-semibold flex items-center gap-2 hover:bg-bg-tertiary transition-colors disabled:opacity-50"
               >
