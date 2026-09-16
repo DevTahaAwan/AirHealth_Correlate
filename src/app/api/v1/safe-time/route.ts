@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server";
-import { MockDataStore } from "@/lib/store";
+import { getSupabaseAdmin } from "@/lib/supabase/client";
 import { calculateSafeExposure } from "@/lib/services";
 import { RespiratoryCondition } from "@/lib/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -20,22 +20,45 @@ export async function GET(request: Request) {
     );
   }
 
-  const districts = await MockDataStore.getDistrictList();
-  const district = districts.find((d) => d.district_id === districtId);
+  const supabase = getSupabaseAdmin();
 
-  if (!district) {
+  const { data: districtBase, error: districtError } = await supabase
+    .from("districts")
+    .select("id, name")
+    .eq("id", districtId)
+    .single();
+
+  if (districtError || !districtBase) {
     return NextResponse.json(
       { success: false, error: { code: "NOT_FOUND", message: "District not found" } },
       { status: 404 }
     );
   }
 
-  const aqi = district.aqi || 50;
+  const { data: station } = await supabase
+    .from("stations")
+    .select("id")
+    .eq("district_id", districtId)
+    .single();
 
-  // Try to load user profile from Supabase if authenticated
+  let aqi = 50;
+  if (station) {
+    const { data: reading } = await supabase
+      .from("aqi_readings")
+      .select("aqi_value")
+      .eq("station_id", station.id)
+      .not("aqi_value", "is", null)
+      .order("recorded_at", { ascending: false })
+      .limit(1)
+      .single();
+    if (reading?.aqi_value != null) {
+      aqi = reading.aqi_value;
+    }
+  }
+
   try {
-    const supabase = createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const supabaseAuth = createSupabaseServerClient();
+    const { data: { user } } = await supabaseAuth.auth.getUser();
 
     if (user) {
       const { data: profile } = await supabase
@@ -43,7 +66,7 @@ export async function GET(request: Request) {
         .select("*")
         .eq("auth_id", user.id)
         .single();
-      
+
       if (profile) {
         ageGroup = profile.age_group || ageGroup;
         exposure = profile.exposure_level || exposure;
@@ -52,11 +75,9 @@ export async function GET(request: Request) {
         }
       }
     } else if (conditionsParam) {
-      // Fallback to query params if not authenticated
       conditions = conditionsParam.split(",") as RespiratoryCondition[];
     }
   } catch {
-    // Graceful fallback to query params
     if (conditionsParam) {
       conditions = conditionsParam.split(",") as RespiratoryCondition[];
     }

@@ -38,9 +38,10 @@ interface PollutantCardProps {
   subAqi: number | null;
   icon: React.ReactNode;
   accentColor: string;
+  estimated?: boolean;
 }
 
-function PollutantCard({ name, value, unit, subAqi, icon, accentColor }: PollutantCardProps) {
+function PollutantCard({ name, value, unit, subAqi, icon, accentColor, estimated }: PollutantCardProps) {
   const subAqiLabel = subAqi !== null ? getAQICategory(subAqi).label : null;
 
   return (
@@ -50,7 +51,14 @@ function PollutantCard({ name, value, unit, subAqi, icon, accentColor }: Polluta
           <div className={cn("p-1.5 rounded-lg")} style={{ backgroundColor: `${accentColor}15` }}>
             <span style={{ color: accentColor }}>{icon}</span>
           </div>
-          <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">{name}</span>
+          <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+            {name}
+            {estimated && (
+              <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-700/50 text-slate-300">
+                Est.
+              </span>
+            )}
+          </span>
         </div>
         {subAqi !== null && (
           <span
@@ -250,9 +258,17 @@ export default function PersonalizedDashboard() {
 
   const basePm25 = district?.pm25_value || 0;
   const displayPm10 = district?.pm10_value ?? Math.round(basePm25 * 1.5 * 10) / 10;
+  
+  const isNo2Estimated = district?.no2_value == null;
   const displayNo2 = district?.no2_value ?? Math.round(basePm25 * 0.4 * 10) / 10;
+  
+  const isSo2Estimated = district?.so2_value == null;
   const displaySo2 = district?.so2_value ?? Math.round(basePm25 * 0.1 * 10) / 10;
+  
+  const isCoEstimated = district?.co_value == null;
   const displayCo = district?.co_value ?? Math.round(basePm25 * 10);
+  
+  const isO3Estimated = district?.o3_value == null;
   const displayO3 = district?.o3_value ?? 25.0;
 
   const pollutants = district
@@ -283,6 +299,7 @@ export default function PersonalizedDashboard() {
           subAqi: calculateCO_AQI(displayCo),
           icon: <Activity className="h-4 w-4" />,
           accentColor: "#b91c1c",
+          estimated: isCoEstimated,
         },
         {
           name: "SO₂",
@@ -291,6 +308,7 @@ export default function PersonalizedDashboard() {
           subAqi: calculateSO2_AQI(displaySo2),
           icon: <CloudRain className="h-4 w-4" />,
           accentColor: "#ca8a04",
+          estimated: isSo2Estimated,
         },
         {
           name: "NO₂",
@@ -299,6 +317,7 @@ export default function PersonalizedDashboard() {
           subAqi: calculateNO2_AQI(displayNo2),
           icon: <AlertTriangle className="h-4 w-4" />,
           accentColor: "#ea580c",
+          estimated: isNo2Estimated,
         },
         {
           name: "O₃",
@@ -307,6 +326,7 @@ export default function PersonalizedDashboard() {
           subAqi: calculateO3_AQI(displayO3),
           icon: <ShieldAlert className="h-4 w-4" />,
           accentColor: "#15803d",
+          estimated: isO3Estimated,
         },
       ]
     : [];
