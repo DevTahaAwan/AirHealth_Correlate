@@ -4,7 +4,7 @@ import React, { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Mail, Lock } from "lucide-react";
 
 function SignupForm() {
   const router = useRouter();
@@ -47,7 +47,7 @@ function SignupForm() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-text-primary mb-2 text-center">
+      <h1 className="text-2xl mb-2 text-center bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent font-extrabold">
         Create Account
       </h1>
       <p className="text-text-secondary text-sm text-center mb-6">
@@ -61,41 +61,47 @@ function SignupForm() {
         </div>
       )}
 
-      <form onSubmit={handleSignup} className="space-y-4">
+      <form onSubmit={handleSignup} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">
             Email Address
           </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full px-4 py-2 bg-bg-primary border border-border-default rounded-md focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-shadow text-text-primary"
-            placeholder="you@example.com"
-          />
+          <div className="relative">
+            <Mail className="absolute left-3 top-3 text-slate-400 h-5 w-5" />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full pl-10 pr-4 py-2 bg-bg-primary border border-border-default rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all text-text-primary"
+              placeholder="you@example.com"
+            />
+          </div>
         </div>
         
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">
             Password
           </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={6}
-            className="w-full px-4 py-2 bg-bg-primary border border-border-default rounded-md focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-shadow text-text-primary"
-            placeholder="••••••••"
-          />
+          <div className="relative">
+            <Lock className="absolute left-3 top-3 text-slate-400 h-5 w-5" />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full pl-10 pr-4 py-2 bg-bg-primary border border-border-default rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all text-text-primary"
+              placeholder="••••••••"
+            />
+          </div>
           <p className="text-xs text-text-tertiary mt-1">Must be at least 6 characters long.</p>
         </div>
 
         <button
           type="submit"
           disabled={loading || !email || password.length < 6}
-          className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand hover:bg-brand-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-6"
+          className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md text-sm font-semibold text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-lg shadow-cyan-500/25 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all mt-6"
         >
           {loading ? (
             <>
