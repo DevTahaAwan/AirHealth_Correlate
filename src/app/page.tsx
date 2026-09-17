@@ -136,8 +136,6 @@ export default function DashboardPage() {
             selectedDistrictId={selectedDistrictId}
             onDistrictSelect={handleDistrictSelect}
           />
-
-
         </main>
       </div>
 

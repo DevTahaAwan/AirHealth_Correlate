@@ -3,11 +3,13 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/client";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { z } from "zod";
+import crypto from "crypto";
 
 
 
 const reportSchema = z.object({
   district_id: z.string().min(1),
+  device_id: z.string().optional(),
   // Old format
   symptoms: z.array(z.string()).optional(),
   severity: z.number().optional(),
@@ -33,36 +35,54 @@ export async function POST(request: Request) {
     }
 
     const { 
-      district_id, symptoms, severity, duration, 
+      district_id, device_id, symptoms, severity, duration, 
       coughing_severity, shortness_of_breath_severity, sputum_color, spo2 
     } = result.data;
     
     const supabaseServer = createSupabaseServerClient();
     const { data: { session } } = await supabaseServer.auth.getSession();
 
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: { code: "UNAUTHORIZED", message: "You must be logged in to report symptoms." } },
-        { status: 401 }
-      );
-    }
+    let uid: string | undefined;
+    let name: string | undefined;
+    let email: string | undefined;
+    let isAnonymous = false;
+    let finalDeviceId = device_id;
 
-    const uid = session.user.id;
-    const name = session.user.user_metadata?.name || session.user.email?.split('@')[0] || "Anonymous";
-    const email = session.user.email || "";
+    if (session?.user) {
+      uid = session.user.id;
+      name = session.user.user_metadata?.name || session.user.email?.split('@')[0] || "Anonymous";
+      email = session.user.email || "";
+      if (!finalDeviceId) {
+        finalDeviceId = crypto.randomUUID();
+      }
+    } else {
+      if (!finalDeviceId) {
+        return NextResponse.json(
+          { success: false, error: { code: "BAD_REQUEST", message: "device_id is required for anonymous reports" } },
+          { status: 400 }
+        );
+      }
+      isAnonymous = true;
+    }
 
     const supabase = getSupabaseAdmin();
     const today = new Date().toISOString().split('T')[0];
 
-    // Explicitly check for an existing report today from this user in this district
-    const { data: existingReport } = await supabase
+    // Explicitly check for an existing report today from this user/device in this district
+    let query = supabase
       .from("symptom_reports")
       .select("id")
-      .eq("user_id", uid)
       .eq("district_id", district_id)
       .eq("reported_at", today)
-      .limit(1)
-      .single();
+      .limit(1);
+
+    if (isAnonymous) {
+      query = query.eq("device_id", finalDeviceId);
+    } else {
+      query = query.eq("user_id", uid!);
+    }
+
+    const { data: existingReport } = await query.single();
 
     if (existingReport) {
       return NextResponse.json(
@@ -76,21 +96,23 @@ export async function POST(request: Request) {
     const aggregatedSymptoms: string[] = [];
 
     // Handle new format
+    const baseRow = isAnonymous 
+      ? { device_id: finalDeviceId, district_id, reported_at: today }
+      : { user_id: uid, name, email, device_id: finalDeviceId, district_id, reported_at: today };
+
     if (coughing_severity !== undefined || shortness_of_breath_severity !== undefined) {
       const durationStr = "Daily Log";
       if (coughing_severity && coughing_severity > 0) {
         rowsToInsert.push({
-          user_id: uid, name, email,
-          district_id, symptom: "coughing", severity: coughing_severity, duration: durationStr,
-          reported_at: today, sputum_color, spo2
+          ...baseRow, symptom: "coughing", severity: coughing_severity, duration: durationStr,
+          sputum_color, spo2
         });
         aggregatedSymptoms.push("coughing");
       }
       if (shortness_of_breath_severity && shortness_of_breath_severity > 0) {
         rowsToInsert.push({
-          user_id: uid, name, email,
-          district_id, symptom: "shortness_of_breath", severity: shortness_of_breath_severity, duration: durationStr,
-          reported_at: today, sputum_color, spo2
+          ...baseRow, symptom: "shortness_of_breath", severity: shortness_of_breath_severity, duration: durationStr,
+          sputum_color, spo2
         });
         aggregatedSymptoms.push("shortness_of_breath");
       }
@@ -98,9 +120,8 @@ export async function POST(request: Request) {
       // Let's use "routine_log" so we don't drop the data
       if (rowsToInsert.length === 0) {
         rowsToInsert.push({
-          user_id: uid, name, email,
-          district_id, symptom: "routine_log", severity: 0, duration: durationStr,
-          reported_at: today, sputum_color, spo2
+          ...baseRow, symptom: "routine_log", severity: 0, duration: durationStr,
+          sputum_color, spo2
         });
       }
     } 
@@ -108,9 +129,7 @@ export async function POST(request: Request) {
     else if (symptoms && symptoms.length > 0) {
       for (const s of symptoms) {
         rowsToInsert.push({
-          user_id: uid, name, email,
-          district_id, symptom: s, severity: severity || 1, duration: duration || "1 day",
-          reported_at: today
+          ...baseRow, symptom: s, severity: severity || 1, duration: duration || "1 day"
         });
         aggregatedSymptoms.push(s);
       }

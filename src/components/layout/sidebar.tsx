@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { DistrictListItem, RiskTier } from "@/lib/types";
 import { SkeletonLoader } from "@/components/ui/skeleton-loader";
 import { DataBadge } from "@/components/ui/data-badge";
+import { AnonymousReportWidget } from "@/components/features/anonymous-report-widget";
 
 interface SidebarProps {
   selectedDistrictId: string | null;
@@ -48,10 +49,14 @@ export function Sidebar({ selectedDistrictId }: SidebarProps) {
 
   return (
     <aside className="w-full md:w-sidebar flex-shrink-0 bg-bg-secondary border-r border-border-default h-[calc(100vh-var(--nav-height))] overflow-y-auto hidden md:block">
-      <div className="p-4 border-b border-border-subtle sticky top-0 bg-bg-secondary/95 backdrop-blur-sm z-10">
+      <div className="p-4 border-b border-border-subtle sticky top-0 bg-bg-secondary/95 backdrop-blur-sm z-10 flex items-center justify-between">
         <h2 className="font-semibold text-text-primary text-sm uppercase tracking-wider">
           Lahore Districts
         </h2>
+      </div>
+
+      <div className="p-3 border-b border-border-subtle bg-bg-primary">
+        <AnonymousReportWidget />
       </div>
 
       <div className="p-2 space-y-1">
