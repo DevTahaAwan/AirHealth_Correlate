@@ -9,33 +9,27 @@ interface Metrics {
   cityAqiAverage: number;
 }
 
-interface DemographicData {
-  totalVulnerable: number;
-}
+
 
 export default function PolicySimulatorPage() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
-  const [demographics, setDemographics] = useState<DemographicData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchAdminData() {
       try {
-        const [metricsRes, demoRes] = await Promise.all([
-          fetch("/api/v1/admin/metrics"),
-          fetch("/api/v1/admin/demographics")
+        const [metricsRes] = await Promise.all([
+          fetch("/api/v1/admin/metrics")
         ]);
 
-        if (!metricsRes.ok || !demoRes.ok) {
+        if (!metricsRes.ok) {
           throw new Error("Unauthorized or server error");
         }
 
         const metricsJson = await metricsRes.json();
-        const demoJson = await demoRes.json();
 
         if (metricsJson.success) setMetrics(metricsJson.data);
-        if (demoJson.success) setDemographics(demoJson.data);
       } catch (err: unknown) {
         setError((err as Error).message || "Failed to load data");
       } finally {
@@ -65,7 +59,7 @@ export default function PolicySimulatorPage() {
   }
 
   const currentPm25 = metrics?.cityAqiAverage ? pm25FromAQI(metrics.cityAqiAverage) : 55.0;
-  const districtPopulation = demographics.reduce((acc, d) => acc + d.totalVulnerable, 0) || 850000;
+  const districtPopulation = 11_000_000; // Lahore metro population estimate — placeholder until a real population-by-district data source is wired in.
 
   return (
     <div className="h-full w-full overflow-y-auto bg-slate-950 p-6">

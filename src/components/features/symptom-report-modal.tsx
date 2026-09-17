@@ -105,157 +105,155 @@ export function SymptomReportModal({
       }
     }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-bg-overlay backdrop-blur-sm data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out" />
-        <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] bg-bg-secondary rounded-xl shadow-elevated p-6 data-[state=open]:animate-fade-in focus:outline-none">
-          <div className="flex justify-between items-start mb-4">
-            <Dialog.Title className="text-xl font-bold text-text-primary">
-              Report Symptoms <span className="text-sm font-normal text-text-secondary ml-2">Step {step} of 3</span>
-            </Dialog.Title>
+        <Dialog.Overlay className="fixed inset-0 z-[999] bg-black/60 backdrop-blur-sm data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out" />
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 pointer-events-none">
+          <Dialog.Content className="pointer-events-auto relative w-full max-w-lg max-h-[90vh] flex flex-col rounded-xl overflow-hidden bg-slate-900/95 border border-slate-800 shadow-2xl shadow-black data-[state=open]:animate-fade-in focus:outline-none">
             <Dialog.Close asChild>
-              <button className="text-text-secondary hover:bg-bg-tertiary p-1.5 rounded-full transition-colors">
+              <button className="absolute top-4 right-4 z-10 text-slate-400 hover:text-slate-100 bg-slate-800/50 hover:bg-slate-700/50 p-2 rounded-full transition-colors">
                 <X className="h-5 w-5" />
               </button>
             </Dialog.Close>
-          </div>
 
-          <Dialog.Description className="text-sm text-text-secondary mb-6 flex flex-col gap-1">
-            <span>
-              Help improve community health signals. Your data is anonymized.
-            </span>
-            <span className="font-medium text-community">
-              Reporting for {districtName}
-            </span>
-          </Dialog.Description>
+            <div className="overflow-y-auto p-6 space-y-4">
+              <div className="mb-2 pr-8">
+                <Dialog.Title className="text-xl font-bold text-slate-100">
+                  Report Symptoms <span className="text-sm font-normal text-slate-400 ml-2">Step {step} of 3</span>
+                </Dialog.Title>
+              </div>
 
-          <div className="space-y-4">
-              {/* Step 1: Symptoms */}
-              {step === 1 && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-text-primary">
-                    What are you experiencing?
-                  </label>
-                  <div className="grid grid-cols-1 gap-2 mt-2">
-                    {SYMPTOMS.map((symptom) => {
-                      const isSelected = selectedSymptoms.includes(symptom.id);
-                      return (
-                        <button
-                          key={symptom.id}
-                          type="button"
-                          onClick={() => toggleSymptom(symptom.id)}
-                          className={cn(
-                            "flex items-center justify-between w-full p-3 rounded-lg border text-left transition-colors",
-                            isSelected
-                              ? "border-community bg-community-subtle text-community-text"
-                              : "border-border-default hover:border-text-placeholder bg-bg-secondary text-text-primary"
-                          )}
-                        >
-                          <span className="text-sm font-medium">{symptom.label}</span>
-                          {isSelected && <CheckCircle2 className="h-4 w-4 text-community" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+              <Dialog.Description className="text-sm text-slate-400 mb-6 flex flex-col gap-1">
+                <span>
+                  Help improve community health signals. Your data is anonymized.
+                </span>
+                <span className="font-medium text-cyan-400">
+                  Reporting for {districtName}
+                </span>
+              </Dialog.Description>
 
-              {/* Step 2: Severity */}
-              {step === 2 && (
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <label className="text-sm font-medium text-text-primary">
-                      Symptom Severity (1-10)
+              <div className="space-y-4">
+                {/* Step 1: Symptoms */}
+                {step === 1 && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-100">
+                      What are you experiencing?
                     </label>
-                    <span className="text-sm font-bold text-community">{severity}</span>
+                    <div className="grid grid-cols-1 gap-2 mt-2">
+                      {SYMPTOMS.map((symptom) => {
+                        const isSelected = selectedSymptoms.includes(symptom.id);
+                        return (
+                          <button
+                            key={symptom.id}
+                            type="button"
+                            onClick={() => toggleSymptom(symptom.id)}
+                            className={cn(
+                              "flex items-center justify-between w-full p-3 rounded-lg border text-left transition-colors",
+                              isSelected
+                                ? "bg-cyan-500/20 text-cyan-400 border-cyan-500"
+                                : "bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500"
+                            )}
+                          >
+                            <span className="text-sm font-medium">{symptom.label}</span>
+                            {isSelected && <CheckCircle2 className="h-4 w-4 text-cyan-400" />}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={severity}
-                    onChange={(e) => setSeverity(Number(e.target.value))}
-                    className="w-full h-2 bg-border-default rounded-lg appearance-none cursor-pointer accent-community mt-4 mb-2"
-                  />
-                  <div className="flex justify-between text-xs text-text-secondary px-1">
-                    <span>Mild</span>
-                    <span>Severe</span>
-                  </div>
-                </div>
-              )}
+                )}
 
-              {/* Step 3: Duration */}
-              {step === 3 && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-text-primary">
-                    How long have you felt this?
-                  </label>
-                  <div className="grid grid-cols-3 gap-2 mt-2">
-                    {[
-                      { id: "just_started", label: "Just Started" },
-                      { id: "few_hours", label: "Few Hours" },
-                      { id: "all_day", label: "All Day" },
-                    ].map((dur) => (
-                      <button
-                        key={dur.id}
-                        type="button"
-                        onClick={() => setDuration(dur.id)}
-                        className={cn(
-                          "py-3 px-1 text-sm font-medium rounded-md border transition-colors text-center",
-                          duration === dur.id
-                            ? "border-brand bg-brand-subtle text-brand-active"
-                            : "border-border-default hover:border-text-placeholder bg-bg-secondary text-text-primary"
-                        )}
+                {/* Step 2: Severity */}
+                {step === 2 && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-sm font-medium text-slate-100">
+                        Symptom Severity (1-10)
+                      </label>
+                      <span className="text-sm font-bold text-cyan-400">{severity}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      value={severity}
+                      onChange={(e) => setSeverity(Number(e.target.value))}
+                      className="w-full h-2 bg-slate-800/50 border border-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500 mt-4 mb-2 focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 outline-none transition-all"
+                    />
+                    <div className="flex justify-between text-xs text-slate-400 px-1">
+                      <span>Mild</span>
+                      <span>Severe</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 3: Duration */}
+                {step === 3 && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-100">
+                      How long have you felt this?
+                    </label>
+                    <div className="relative mt-2">
+                      <select
+                        value={duration}
+                        onChange={(e) => setDuration(e.target.value)}
+                        className="w-full bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 py-3 pl-4 pr-10 focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 appearance-none outline-none transition-all"
                       >
-                        {dur.label}
-                      </button>
-                    ))}
+                        <option value="just_started" className="bg-slate-900 text-white">Just Started</option>
+                        <option value="few_hours" className="bg-slate-900 text-white">Few Hours</option>
+                        <option value="all_day" className="bg-slate-900 text-white">All Day</option>
+                      </select>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {error && (
-                <div className="text-sm text-error font-medium p-2 bg-error-subtle rounded flex items-center gap-2 mt-4">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  {error}
-                </div>
-              )}
+                {error && (
+                  <div className="text-sm text-red-400 font-medium p-2 bg-red-900/20 border border-red-900/50 rounded flex items-center gap-2 mt-4">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    {error}
+                  </div>
+                )}
 
-              <div className="pt-4 border-t border-border-subtle mt-6 flex justify-between">
-                <div>
-                  {step > 1 && (
-                    <button onClick={handleBack} className="px-4 py-2 text-sm font-medium text-text-secondary hover:bg-bg-tertiary rounded-md">
-                      Back
-                    </button>
-                  )}
-                  {step === 1 && (
-                    <Dialog.Close asChild>
-                      <button className="px-4 py-2 text-sm font-medium text-text-secondary hover:bg-bg-tertiary rounded-md">
-                        Cancel
+                <div className="pt-4 border-t border-slate-800 mt-6 flex justify-between">
+                  <div>
+                    {step > 1 && (
+                      <button onClick={handleBack} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-md transition-colors">
+                        Back
                       </button>
-                    </Dialog.Close>
-                  )}
-                </div>
-                <div>
-                  {step < 3 ? (
-                    <button
-                      onClick={handleNext}
-                      disabled={step === 1 && selectedSymptoms.length === 0}
-                      className="px-4 py-2 text-sm font-medium text-white bg-community hover:bg-community-text rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
-                    >
-                      Next
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleSubmit}
-                      disabled={isSubmitting}
-                      className="px-4 py-2 text-sm font-medium text-white bg-community hover:bg-community-text rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center min-w-[120px] justify-center transition-colors shadow-sm"
-                    >
-                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit Report"}
-                    </button>
-                  )}
+                    )}
+                    {step === 1 && (
+                      <Dialog.Close asChild>
+                        <button className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-md transition-colors">
+                          Cancel
+                        </button>
+                      </Dialog.Close>
+                    )}
+                  </div>
+                  <div>
+                    {step < 3 ? (
+                      <button
+                        onClick={handleNext}
+                        disabled={step === 1 && selectedSymptoms.length === 0}
+                        className="px-4 py-2 text-sm font-medium text-slate-900 bg-cyan-400 hover:bg-cyan-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm font-semibold"
+                      >
+                        Next
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleSubmit}
+                        disabled={isSubmitting}
+                        className="px-4 py-2 text-sm font-medium text-slate-900 bg-cyan-400 hover:bg-cyan-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center min-w-[120px] justify-center transition-colors shadow-sm font-semibold"
+                      >
+                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit Report"}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-          </div>
-        </Dialog.Content>
+            </div>
+          </Dialog.Content>
+        </div>
       </Dialog.Portal>
     </Dialog.Root>
   );
