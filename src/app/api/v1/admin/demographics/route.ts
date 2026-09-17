@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/client";
 import { isAdminEmail } from "@/lib/utils/admin-auth";
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +14,9 @@ export async function GET() {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: profiles, error } = await supabase
+    const supabaseAdmin = getSupabaseAdmin();
+
+    const { data: profiles, error } = await supabaseAdmin
       .from("user_profiles")
       .select("home_district_id, conditions");
 

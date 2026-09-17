@@ -7,7 +7,7 @@ import { useTheme } from "next-themes";
 import { useAuth } from "@/components/auth/auth-provider";
 import { isAdminEmail } from "@/lib/utils/admin-auth";
 
-function ThemeToggle() {
+export function ThemeToggle() {
   const { setTheme, theme } = useTheme();
 
   return (

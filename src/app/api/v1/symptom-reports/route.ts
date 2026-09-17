@@ -80,7 +80,7 @@ export async function POST(request: Request) {
       const durationStr = "Daily Log";
       if (coughing_severity && coughing_severity > 0) {
         rowsToInsert.push({
-          user_id: uid, reporter_name: name, reporter_email: email,
+          user_id: uid, name, email,
           district_id, symptom: "coughing", severity: coughing_severity, duration: durationStr,
           reported_at: today, sputum_color, spo2
         });
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
       }
       if (shortness_of_breath_severity && shortness_of_breath_severity > 0) {
         rowsToInsert.push({
-          user_id: uid, reporter_name: name, reporter_email: email,
+          user_id: uid, name, email,
           district_id, symptom: "shortness_of_breath", severity: shortness_of_breath_severity, duration: durationStr,
           reported_at: today, sputum_color, spo2
         });
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
       // Let's use "routine_log" so we don't drop the data
       if (rowsToInsert.length === 0) {
         rowsToInsert.push({
-          user_id: uid, reporter_name: name, reporter_email: email,
+          user_id: uid, name, email,
           district_id, symptom: "routine_log", severity: 0, duration: durationStr,
           reported_at: today, sputum_color, spo2
         });
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
     else if (symptoms && symptoms.length > 0) {
       for (const s of symptoms) {
         rowsToInsert.push({
-          user_id: uid, reporter_name: name, reporter_email: email,
+          user_id: uid, name, email,
           district_id, symptom: s, severity: severity || 1, duration: duration || "1 day",
           reported_at: today
         });

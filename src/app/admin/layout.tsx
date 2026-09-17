@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { Wind, ShieldAlert, LayoutDashboard, SlidersHorizontal, LogOut, BarChart3 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { ThemeToggle } from "@/components/layout/header";
 
 export default function AdminLayout({
   children,
@@ -52,13 +53,18 @@ export default function AdminLayout({
         </nav>
 
         <div className="p-4 border-t border-slate-800 flex flex-col gap-2">
-          <div className="flex items-center gap-3 bg-slate-950 p-3 rounded-lg border border-slate-800">
-            <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
-              <ShieldAlert className="h-4 w-4 text-emerald-500" />
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3 bg-slate-950 p-3 rounded-lg border border-slate-800 flex-1">
+              <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <ShieldAlert className="h-4 w-4 text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-300">Admin Mode</p>
+                <p className="text-[10px] text-slate-500">Elevated access</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-300">Admin Mode</p>
-              <p className="text-[10px] text-slate-500">Elevated access</p>
+            <div className="flex-shrink-0 bg-slate-950 p-2 rounded-lg border border-slate-800">
+              <ThemeToggle />
             </div>
           </div>
           

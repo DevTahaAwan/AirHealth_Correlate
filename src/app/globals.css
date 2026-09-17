@@ -15,18 +15,18 @@
   --font-mono: "JetBrains Mono", monospace;
 
   /* === Color Tokens (CSS Custom Properties for runtime access) === */
-  --bg-primary: #f7f8fa;
-  --bg-secondary: #ffffff;
+  --bg-primary: #F4FBF7;
+  --bg-secondary: #FFFFFF;
   --bg-tertiary: #eef1f4;
   --bg-overlay: rgba(15, 23, 34, 0.55);
 
-  --brand: #0369a1;
-  --brand-hover: #075985;
-  --brand-active: #0c4a6e;
-  --brand-subtle: #e0f2fe;
+  --brand: #2EBD85;
+  --brand-hover: #27a272;
+  --brand-active: #1f855d;
+  --brand-subtle: #d6f2e6;
 
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
+  --text-primary: #1A332A;
+  --text-secondary: #5A7A6E;
   --text-tertiary: #94a3b8;
 
   --border-default: #e2e8f0;
@@ -50,18 +50,18 @@
 }
 
 .dark {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
+  --bg-primary: #121212;
+  --bg-secondary: #1E1E1E;
   --bg-tertiary: #334155;
   --bg-overlay: rgba(15, 23, 34, 0.8);
 
-  --brand: #38bdf8;
-  --brand-hover: #7dd3fc;
-  --brand-active: #bae6fd;
-  --brand-subtle: rgba(14, 165, 233, 0.15);
+  --brand: #10B981;
+  --brand-hover: #059669;
+  --brand-active: #047857;
+  --brand-subtle: rgba(16, 185, 129, 0.15);
 
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
+  --text-primary: #F9FAFB;
+  --text-secondary: #9CA3AF;
   --text-tertiary: #94a3b8;
 
   --border-default: #334155;

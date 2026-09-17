@@ -15,10 +15,12 @@ export async function GET() {
     }
 
     const supabaseAdmin = getSupabaseAdmin();
+    const today = new Date().toISOString().split("T")[0];
 
     const { data: allReports, error: reportsError } = await supabaseAdmin
       .from("symptom_reports")
-      .select("id, district_id, symptom, severity, reported_at");
+      .select("id, district_id, symptom, severity, reported_at")
+      .eq("reported_at", today);
 
     if (reportsError || !allReports) {
       return NextResponse.json({ success: false, error: "Failed to fetch reports" }, { status: 500 });
