@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { X, CheckCircle2, AlertCircle, Loader2, ChevronDown } from "lucide-react";
 import { SymptomType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -105,151 +105,152 @@ export function SymptomReportModal({
       }
     }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[999] bg-black/60 backdrop-blur-sm data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out" />
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 pointer-events-none">
-          <Dialog.Content className="pointer-events-auto relative w-full max-w-lg max-h-[90vh] flex flex-col rounded-xl overflow-hidden bg-slate-900/95 border border-slate-800 shadow-2xl shadow-black data-[state=open]:animate-fade-in focus:outline-none">
-            <Dialog.Close asChild>
-              <button className="absolute top-4 right-4 z-10 text-slate-400 hover:text-slate-100 bg-slate-800/50 hover:bg-slate-700/50 p-2 rounded-full transition-colors">
-                <X className="h-5 w-5" />
-              </button>
-            </Dialog.Close>
+        <Dialog.Overlay className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out" />
+        
+        {/* The Screen Lock & Centering Wrapper */}
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 pointer-events-none">
+          
+          {/* The Modal Container */}
+          <Dialog.Content className="pointer-events-auto relative w-full max-w-md max-h-[90vh] flex flex-col bg-slate-900/95 border border-slate-700 shadow-2xl rounded-2xl overflow-hidden data-[state=open]:animate-fade-in focus:outline-none">
+            
+            {/* STICKY HEADER */}
+            <div className="flex justify-between items-center p-5 border-b border-slate-800 bg-slate-900 shrink-0">
+              <div>
+                <Dialog.Title className="text-xl font-bold text-slate-100">Report Symptoms</Dialog.Title>
+                <Dialog.Description className="text-sm text-slate-400 mt-1">Help us track local health impacts.</Dialog.Description>
+              </div>
+              <Dialog.Close asChild>
+                <button className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
+                  <X size={20} />
+                </button>
+              </Dialog.Close>
+            </div>
 
-            <div className="overflow-y-auto p-6 space-y-4">
-              <div className="mb-2 pr-8">
-                <Dialog.Title className="text-xl font-bold text-slate-100">
-                  Report Symptoms <span className="text-sm font-normal text-slate-400 ml-2">Step {step} of 3</span>
-                </Dialog.Title>
+            {/* SCROLLABLE BODY */}
+            <div className="p-5 overflow-y-auto flex-1 space-y-6">
+              <div className="text-sm font-medium text-cyan-400 mb-2">
+                Reporting for {districtName} - Step {step} of 3
               </div>
 
-              <Dialog.Description className="text-sm text-slate-400 mb-6 flex flex-col gap-1">
-                <span>
-                  Help improve community health signals. Your data is anonymized.
-                </span>
-                <span className="font-medium text-cyan-400">
-                  Reporting for {districtName}
-                </span>
-              </Dialog.Description>
-
-              <div className="space-y-4">
-                {/* Step 1: Symptoms */}
-                {step === 1 && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-100">
-                      What are you experiencing?
-                    </label>
-                    <div className="grid grid-cols-1 gap-2 mt-2">
-                      {SYMPTOMS.map((symptom) => {
-                        const isSelected = selectedSymptoms.includes(symptom.id);
-                        return (
-                          <button
-                            key={symptom.id}
-                            type="button"
-                            onClick={() => toggleSymptom(symptom.id)}
-                            className={cn(
-                              "flex items-center justify-between w-full p-3 rounded-lg border text-left transition-colors",
-                              isSelected
-                                ? "bg-cyan-500/20 text-cyan-400 border-cyan-500"
-                                : "bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500"
-                            )}
-                          >
-                            <span className="text-sm font-medium">{symptom.label}</span>
-                            {isSelected && <CheckCircle2 className="h-4 w-4 text-cyan-400" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 2: Severity */}
-                {step === 2 && (
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <label className="text-sm font-medium text-slate-100">
-                        Symptom Severity (1-10)
-                      </label>
-                      <span className="text-sm font-bold text-cyan-400">{severity}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="10"
-                      value={severity}
-                      onChange={(e) => setSeverity(Number(e.target.value))}
-                      className="w-full h-2 bg-slate-800/50 border border-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500 mt-4 mb-2 focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 outline-none transition-all"
-                    />
-                    <div className="flex justify-between text-xs text-slate-400 px-1">
-                      <span>Mild</span>
-                      <span>Severe</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 3: Duration */}
-                {step === 3 && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-100">
-                      How long have you felt this?
-                    </label>
-                    <div className="relative mt-2">
-                      <select
-                        value={duration}
-                        onChange={(e) => setDuration(e.target.value)}
-                        className="w-full bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 py-3 pl-4 pr-10 focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 appearance-none outline-none transition-all"
-                      >
-                        <option value="just_started" className="bg-slate-900 text-white">Just Started</option>
-                        <option value="few_hours" className="bg-slate-900 text-white">Few Hours</option>
-                        <option value="all_day" className="bg-slate-900 text-white">All Day</option>
-                      </select>
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                        <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {error && (
-                  <div className="text-sm text-red-400 font-medium p-2 bg-red-900/20 border border-red-900/50 rounded flex items-center gap-2 mt-4">
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    {error}
-                  </div>
-                )}
-
-                <div className="pt-4 border-t border-slate-800 mt-6 flex justify-between">
-                  <div>
-                    {step > 1 && (
-                      <button onClick={handleBack} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-md transition-colors">
-                        Back
-                      </button>
-                    )}
-                    {step === 1 && (
-                      <Dialog.Close asChild>
-                        <button className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-md transition-colors">
-                          Cancel
+              {/* Step 1: Symptoms */}
+              {step === 1 && (
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-slate-100">
+                    What are you experiencing?
+                  </label>
+                  <div className="grid grid-cols-1 gap-2 mt-2">
+                    {SYMPTOMS.map((symptom) => {
+                      const isSelected = selectedSymptoms.includes(symptom.id);
+                      return (
+                        <button
+                          key={symptom.id}
+                          type="button"
+                          onClick={() => toggleSymptom(symptom.id)}
+                          className={cn(
+                            "flex items-center justify-between w-full p-3 rounded-lg border text-left transition-colors",
+                            isSelected
+                              ? "bg-cyan-500/20 text-cyan-400 border-cyan-500"
+                              : "bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500"
+                          )}
+                        >
+                          <span className="text-sm font-medium">{symptom.label}</span>
+                          {isSelected && <CheckCircle2 className="h-4 w-4 text-cyan-400" />}
                         </button>
-                      </Dialog.Close>
-                    )}
-                  </div>
-                  <div>
-                    {step < 3 ? (
-                      <button
-                        onClick={handleNext}
-                        disabled={step === 1 && selectedSymptoms.length === 0}
-                        className="px-4 py-2 text-sm font-medium text-slate-900 bg-cyan-400 hover:bg-cyan-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm font-semibold"
-                      >
-                        Next
-                      </button>
-                    ) : (
-                      <button
-                        onClick={handleSubmit}
-                        disabled={isSubmitting}
-                        className="px-4 py-2 text-sm font-medium text-slate-900 bg-cyan-400 hover:bg-cyan-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center min-w-[120px] justify-center transition-colors shadow-sm font-semibold"
-                      >
-                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit Report"}
-                      </button>
-                    )}
+                      );
+                    })}
                   </div>
                 </div>
+              )}
+
+              {/* Step 2: Severity */}
+              {step === 2 && (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <label className="text-sm font-medium text-slate-100">
+                      Symptom Severity (1-10)
+                    </label>
+                    <span className="text-sm font-bold text-cyan-400">{severity}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={severity}
+                    onChange={(e) => setSeverity(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-800 border border-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500 mt-4 mb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
+                  />
+                  <div className="flex justify-between text-xs text-slate-400 px-1">
+                    <span>Mild</span>
+                    <span>Severe</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Duration */}
+              {step === 3 && (
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-slate-100">
+                    How long have you felt this?
+                  </label>
+                  <div className="relative mt-2">
+                    <select
+                      value={duration}
+                      onChange={(e) => setDuration(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-100 py-3 pl-4 pr-10 appearance-none focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
+                    >
+                      <option value="just_started" className="bg-slate-900 text-slate-100">Just Started</option>
+                      <option value="few_hours" className="bg-slate-900 text-slate-100">Few Hours</option>
+                      <option value="all_day" className="bg-slate-900 text-slate-100">All Day</option>
+                    </select>
+                    <div className="absolute right-3 top-3.5 pointer-events-none">
+                      <ChevronDown size={20} className="text-slate-400" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {error && (
+                <div className="text-sm text-red-400 font-medium p-3 bg-red-900/20 border border-red-900/50 rounded-lg flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {error}
+                </div>
+              )}
+            </div>
+
+            {/* STICKY FOOTER */}
+            <div className="p-5 border-t border-slate-800 bg-slate-900 shrink-0 space-y-4">
+              {step < 3 ? (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={step === 1 && selectedSymptoms.length === 0}
+                  className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg shadow-lg transition-all"
+                >
+                  Next Step
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="w-full flex justify-center items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg shadow-lg transition-all"
+                >
+                  {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Submit Report"}
+                </button>
+              )}
+
+              <div className="flex justify-center">
+                {step > 1 ? (
+                  <button type="button" onClick={handleBack} className="text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors">
+                    Back
+                  </button>
+                ) : (
+                  <Dialog.Close asChild>
+                    <button type="button" className="text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors">
+                      Cancel
+                    </button>
+                  </Dialog.Close>
+                )}
               </div>
             </div>
           </Dialog.Content>
@@ -258,3 +259,4 @@ export function SymptomReportModal({
     </Dialog.Root>
   );
 }
+
