@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
+import * as Select from "@radix-ui/react-select";
 import { X, CheckCircle2, AlertCircle, Loader2, ChevronDown } from "lucide-react";
 import { SymptomType } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -105,16 +106,16 @@ export function SymptomReportModal({
       }
     }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out" />
         
         {/* The Screen Lock & Centering Wrapper */}
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 pointer-events-none">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 pointer-events-none">
           
           {/* The Modal Container */}
-          <Dialog.Content className="pointer-events-auto relative w-full max-w-md max-h-[90vh] flex flex-col bg-slate-900/95 border border-slate-700 shadow-2xl rounded-2xl overflow-hidden data-[state=open]:animate-fade-in focus:outline-none">
+          <Dialog.Content className="pointer-events-auto relative w-full max-w-md max-h-[90vh] flex flex-col bg-slate-900/90 backdrop-blur-md border border-white/10 shadow-2xl rounded-2xl overflow-hidden data-[state=open]:animate-fade-in focus:outline-none">
             
             {/* STICKY HEADER */}
-            <div className="flex justify-between items-center p-5 border-b border-slate-800 bg-slate-900 shrink-0">
+            <div className="flex justify-between items-center p-5 border-b border-white/10 shrink-0">
               <div>
                 <Dialog.Title className="text-xl font-bold text-slate-100">Report Symptoms</Dialog.Title>
                 <Dialog.Description className="text-sm text-slate-400 mt-1">Help us track local health impacts.</Dialog.Description>
@@ -150,7 +151,7 @@ export function SymptomReportModal({
                             "flex items-center justify-between w-full p-3 rounded-lg border text-left transition-colors",
                             isSelected
                               ? "bg-cyan-500/20 text-cyan-400 border-cyan-500"
-                              : "bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500"
+                              : "bg-slate-800/50 text-slate-400 border-white/10 hover:border-white/20"
                           )}
                         >
                           <span className="text-sm font-medium">{symptom.label}</span>
@@ -177,7 +178,7 @@ export function SymptomReportModal({
                     max="10"
                     value={severity}
                     onChange={(e) => setSeverity(Number(e.target.value))}
-                    className="w-full h-2 bg-slate-800 border border-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500 mt-4 mb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
+                    className="w-full h-2 bg-slate-800/50 border border-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-500 mt-4 mb-2 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
                   />
                   <div className="flex justify-between text-xs text-slate-400 px-1">
                     <span>Mild</span>
@@ -192,20 +193,29 @@ export function SymptomReportModal({
                   <label className="text-sm font-medium text-slate-100">
                     How long have you felt this?
                   </label>
-                  <div className="relative mt-2">
-                    <select
-                      value={duration}
-                      onChange={(e) => setDuration(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-100 py-3 pl-4 pr-10 appearance-none focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
-                    >
-                      <option value="just_started" className="bg-slate-900 text-slate-100">Just Started</option>
-                      <option value="few_hours" className="bg-slate-900 text-slate-100">Few Hours</option>
-                      <option value="all_day" className="bg-slate-900 text-slate-100">All Day</option>
-                    </select>
-                    <div className="absolute right-3 top-3.5 pointer-events-none">
-                      <ChevronDown size={20} className="text-slate-400" />
-                    </div>
-                  </div>
+                  <Select.Root value={duration} onValueChange={setDuration}>
+                    <Select.Trigger className="w-full flex items-center justify-between bg-slate-800/50 border border-white/10 rounded-lg text-slate-100 py-3 px-4 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all">
+                      <Select.Value />
+                      <Select.Icon>
+                        <ChevronDown size={20} className="text-slate-400" />
+                      </Select.Icon>
+                    </Select.Trigger>
+                    <Select.Portal>
+                      <Select.Content className="z-[9999] bg-slate-800 border border-white/10 rounded-lg shadow-xl overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
+                        <Select.Viewport className="p-1">
+                          <Select.Item value="just_started" className="flex items-center px-3 py-2 text-sm text-slate-100 cursor-pointer hover:bg-slate-700 data-[highlighted]:bg-slate-700 focus:bg-slate-700 outline-none rounded-md transition-colors">
+                            <Select.ItemText>Just Started</Select.ItemText>
+                          </Select.Item>
+                          <Select.Item value="few_hours" className="flex items-center px-3 py-2 text-sm text-slate-100 cursor-pointer hover:bg-slate-700 data-[highlighted]:bg-slate-700 focus:bg-slate-700 outline-none rounded-md transition-colors">
+                            <Select.ItemText>Few Hours</Select.ItemText>
+                          </Select.Item>
+                          <Select.Item value="all_day" className="flex items-center px-3 py-2 text-sm text-slate-100 cursor-pointer hover:bg-slate-700 data-[highlighted]:bg-slate-700 focus:bg-slate-700 outline-none rounded-md transition-colors">
+                            <Select.ItemText>All Day</Select.ItemText>
+                          </Select.Item>
+                        </Select.Viewport>
+                      </Select.Content>
+                    </Select.Portal>
+                  </Select.Root>
                 </div>
               )}
 
@@ -218,7 +228,7 @@ export function SymptomReportModal({
             </div>
 
             {/* STICKY FOOTER */}
-            <div className="p-5 border-t border-slate-800 bg-slate-900 shrink-0 space-y-4">
+            <div className="p-5 border-t border-white/10 shrink-0 space-y-4">
               {step < 3 ? (
                 <button
                   type="button"
