@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { MockDataStore } from "@/lib/store";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/utils/admin-auth";
 
@@ -23,8 +22,16 @@ export async function GET() {
       return NextResponse.json({ success: false, error: "Failed to fetch data" }, { status: 500 });
     }
 
-    const districts = await MockDataStore.getDistrictList();
-    const districtMap = new Map(districts.map(d => [d.district_id, d.name]));
+    const { data: districts, error: districtsError } = await supabase
+      .from("districts")
+      .select("id, name");
+
+    if (districtsError || !districts) {
+      console.error("Supabase Error fetching districts:", districtsError);
+      return NextResponse.json({ success: false, error: "Failed to fetch districts" }, { status: 500 });
+    }
+
+    const districtMap = new Map(districts.map(d => [d.id, d.name]));
 
     const demographicMap: Record<string, Record<string, number>> = {};
 
