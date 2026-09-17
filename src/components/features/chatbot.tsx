@@ -18,6 +18,7 @@ interface ChatbotProps {
 
 export function Chatbot({ context }: ChatbotProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [input, setInput] = useState("");
 
   const chatOptions = {
     api: "/api/chat",
@@ -30,13 +31,23 @@ export function Chatbot({ context }: ChatbotProps) {
       {
         id: "welcome",
         role: "assistant",
-        content: `Hi ${context.userName.split(" ")[0]}! I'm your AI Health Advisor. The AQI in ${context.districtName} is ${context.aqi}. How can I help you safely plan your day?`,
+        parts: [{ type: "text", text: `Hi ${context.userName.split(" ")[0]}! I'm your AI Health Advisor. The AQI in ${context.districtName} is ${context.aqi}. How can I help you safely plan your day?` }],
       },
     ],
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat(chatOptions as any) as any;
+  const { messages, sendMessage, isLoading } = useChat(chatOptions as any) as any;
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+    
+    // Use sendMessage as explicitly requested by user
+    sendMessage({ text: input });
+    
+    setInput("");
+  };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -90,7 +101,15 @@ export function Chatbot({ context }: ChatbotProps) {
                   )}
                 >
                   <div className="prose prose-sm dark:prose-invert max-w-none">
-                    {m.content}
+                    {/* Render message parts if available, fallback to content string */}
+                    {m.parts 
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      ? m.parts.map((part: any, i: number) => {
+                          if (part.type === 'text') return <span key={i}>{part.text}</span>;
+                          return null;
+                        })
+                      : m.content
+                    }
                   </div>
                 </div>
                 {m.role === "user" && (
@@ -115,14 +134,14 @@ export function Chatbot({ context }: ChatbotProps) {
 
           <div className="p-4 border-t border-slate-800 bg-slate-900/50">
             <form
-              onSubmit={handleSubmit}
+              onSubmit={handleFormSubmit}
               className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-full px-4 py-2 focus-within:ring-2 focus-within:ring-cyan-500/50 transition-all"
             >
               <input
                 className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder:text-slate-400 py-1"
                 value={input}
                 placeholder="Ask about going for a run..."
-                onChange={handleInputChange}
+                onChange={(e) => setInput(e.target.value)}
                 disabled={isLoading}
               />
               <button

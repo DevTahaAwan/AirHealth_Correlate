@@ -23,7 +23,7 @@ Give them brief, practical, and highly specific advice for going outside today. 
       messages,
     });
 
-    return result.toTextStreamResponse();
+    return result.toUIMessageStreamResponse();
   } catch (error) {
     console.error("Chat API Error:", error);
     return new Response(JSON.stringify({ error: "Failed to generate response" }), { status: 500 });
