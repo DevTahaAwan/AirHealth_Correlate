@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import { DistrictListItem, RiskTier } from "@/lib/types";
 import { SkeletonLoader } from "@/components/ui/skeleton-loader";
 import { DataBadge } from "@/components/ui/data-badge";
-import { AnonymousReportWidget } from "@/components/features/anonymous-report-widget";
 
 interface SidebarProps {
   selectedDistrictId: string | null;
@@ -53,10 +52,6 @@ export function Sidebar({ selectedDistrictId }: SidebarProps) {
         <h2 className="font-semibold text-text-primary text-sm uppercase tracking-wider">
           Lahore Districts
         </h2>
-      </div>
-
-      <div className="p-3 border-b border-border-subtle bg-bg-primary">
-        <AnonymousReportWidget />
       </div>
 
       <div className="p-2 space-y-1">

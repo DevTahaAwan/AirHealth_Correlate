@@ -10,6 +10,9 @@ import crypto from "crypto";
 const reportSchema = z.object({
   district_id: z.string().min(1),
   device_id: z.string().optional(),
+  name: z.string().optional(),
+  age_group: z.string().optional(),
+  ever_used_inhaler: z.boolean().optional(),
   // Old format
   symptoms: z.array(z.string()).optional(),
   severity: z.number().optional(),
@@ -35,7 +38,7 @@ export async function POST(request: Request) {
     }
 
     const { 
-      district_id, device_id, symptoms, severity, duration, 
+      district_id, device_id, name: payloadName, age_group, ever_used_inhaler, symptoms, severity, duration, 
       coughing_severity, shortness_of_breath_severity, sputum_color, spo2 
     } = result.data;
     
@@ -97,7 +100,14 @@ export async function POST(request: Request) {
 
     // Handle new format
     const baseRow = isAnonymous 
-      ? { device_id: finalDeviceId, district_id, reported_at: today }
+      ? { 
+          device_id: finalDeviceId, 
+          district_id, 
+          reported_at: today,
+          name: payloadName || null,
+          age_group: age_group || null,
+          ever_used_inhaler: ever_used_inhaler ?? null
+        }
       : { user_id: uid, name, email, device_id: finalDeviceId, district_id, reported_at: today };
 
     if (coughing_severity !== undefined || shortness_of_breath_severity !== undefined) {

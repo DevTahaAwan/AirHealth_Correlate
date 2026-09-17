@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { getOrCreateDeviceId } from "@/lib/utils/device-id";
-import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2, X, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DistrictListItem } from "@/lib/types";
 
@@ -15,11 +15,15 @@ const SYMPTOMS = [
   { id: "eye_irritation", label: "Eye Irritation" },
 ];
 
-export function AnonymousReportWidget() {
+export function AnonymousReportForm({ onClose }: { onClose?: () => void }) {
   const [districts, setDistricts] = useState<DistrictListItem[]>([]);
   const [selectedDistrict, setSelectedDistrict] = useState<string>("");
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [severity, setSeverity] = useState<number>(5);
+  
+  const [reporterName, setReporterName] = useState("");
+  const [ageGroup, setAgeGroup] = useState("");
+  const [everUsedInhaler, setEverUsedInhaler] = useState(false);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
@@ -61,7 +65,10 @@ export function AnonymousReportWidget() {
         symptoms: selectedSymptoms,
         severity,
         duration: "unspecified",
-        device_id: deviceId
+        device_id: deviceId,
+        name: reporterName || undefined,
+        age_group: ageGroup || undefined,
+        ever_used_inhaler: everUsedInhaler
       };
 
       const res = await fetch("/api/v1/symptom-reports", {
@@ -80,6 +87,15 @@ export function AnonymousReportWidget() {
       // Reset form
       setSelectedSymptoms([]);
       setSeverity(5);
+      setReporterName("");
+      setAgeGroup("");
+      setEverUsedInhaler(false);
+
+      if (onClose) {
+        setTimeout(() => {
+          onClose();
+        }, 2000);
+      }
     } catch (err) {
       console.error(err);
       setStatus("error");
@@ -126,6 +142,18 @@ export function AnonymousReportWidget() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Reporter Name */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-slate-300">Your Name (optional)</label>
+          <input
+            type="text"
+            value={reporterName}
+            onChange={(e) => setReporterName(e.target.value)}
+            placeholder="e.g. Ali"
+            className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+          />
+        </div>
+
         {/* District Selection */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-slate-300">Select your District</label>
@@ -141,6 +169,21 @@ export function AnonymousReportWidget() {
                 {d.name}
               </option>
             ))}
+          </select>
+        </div>
+
+        {/* Age Group */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-slate-300">Age Group</label>
+          <select
+            value={ageGroup}
+            onChange={(e) => setAgeGroup(e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+          >
+            <option value="" disabled>-- Select age group --</option>
+            <option value="child">Child</option>
+            <option value="adult">Adult</option>
+            <option value="senior">Senior</option>
           </select>
         </div>
 
@@ -167,6 +210,20 @@ export function AnonymousReportWidget() {
               );
             })}
           </div>
+        </div>
+
+        {/* Inhaler Toggle */}
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="inhaler"
+            checked={everUsedInhaler}
+            onChange={(e) => setEverUsedInhaler(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-800 bg-slate-950 text-brand focus:ring-brand focus:ring-offset-slate-900"
+          />
+          <label htmlFor="inhaler" className="text-sm font-medium text-slate-300 cursor-pointer">
+            Have you ever used an inhaler?
+          </label>
         </div>
 
         {/* Severity */}
@@ -214,5 +271,36 @@ export function AnonymousReportWidget() {
         </button>
       </form>
     </div>
+  );
+}
+
+export function AnonymousReportWidget() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-brand hover:bg-brand-hover text-white px-6 py-3 rounded-full shadow-2xl font-semibold transition-transform hover:scale-105 active:scale-95 border border-white/10"
+      >
+        <ClipboardList className="h-5 w-5" />
+        Symptom Report
+      </button>
+
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="absolute inset-0" onClick={() => setIsOpen(false)} />
+          <div className="relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl">
+            <button
+              onClick={() => setIsOpen(false)}
+              className="absolute top-4 right-4 z-20 p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-full transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <AnonymousReportForm onClose={() => setIsOpen(false)} />
+          </div>
+        </div>
+      )}
+    </>
   );
 }

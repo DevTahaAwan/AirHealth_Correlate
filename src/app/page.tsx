@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MapWrapper } from "@/components/features/map-wrapper";
 import { SurgeAdvisoryBanner } from "@/components/ui/surge-advisory-banner";
+import { AnonymousReportWidget } from "@/components/features/anonymous-report-widget";
 import { DistrictListItem, SurgeFlagItem } from "@/lib/types";
 import { MapPin } from "lucide-react";
 import { getNearestDistrictFromList } from "@/lib/utils/geolocation";
@@ -136,6 +137,8 @@ export default function DashboardPage() {
             selectedDistrictId={selectedDistrictId}
             onDistrictSelect={handleDistrictSelect}
           />
+          
+          <AnonymousReportWidget />
         </main>
       </div>
 
