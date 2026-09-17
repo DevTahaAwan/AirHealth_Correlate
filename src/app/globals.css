@@ -15,9 +15,9 @@
   --font-mono: "JetBrains Mono", monospace;
 
   /* === Color Tokens (CSS Custom Properties for runtime access) === */
-  --bg-primary: #F4FBF7;
+  --bg-primary: #F1F5F9;
   --bg-secondary: #FFFFFF;
-  --bg-tertiary: #eef1f4;
+  --bg-tertiary: #E2E8F0;
   --bg-overlay: rgba(15, 23, 34, 0.55);
 
   --brand: #2EBD85;

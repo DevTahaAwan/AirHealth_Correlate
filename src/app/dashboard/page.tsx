@@ -60,17 +60,6 @@ function PollutantCard({ name, value, unit, subAqi, icon, accentColor, estimated
             )}
           </span>
         </div>
-        {subAqi !== null && (
-          <span
-            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-            style={{
-              backgroundColor: `${getAQICategory(subAqi).color}20`,
-              color: getAQICategory(subAqi).color,
-            }}
-          >
-            AQI {subAqi}
-          </span>
-        )}
       </div>
       <div className="flex items-baseline gap-1.5">
         <span className="text-2xl font-black text-text-primary tracking-tight">
@@ -91,7 +80,6 @@ function DailyLogCard({ districtId, onSuccess }: { districtId: string, onSuccess
   const [cough, setCough] = useState(0);
   const [breath, setBreath] = useState(0);
   const [sputum, setSputum] = useState("none");
-  const [spo2, setSpo2] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit() {
@@ -105,7 +93,6 @@ function DailyLogCard({ districtId, onSuccess }: { districtId: string, onSuccess
           coughing_severity: cough,
           shortness_of_breath_severity: breath,
           sputum_color: sputum !== "none" ? sputum : undefined,
-          spo2: spo2 ? parseInt(spo2, 10) : undefined,
         })
       });
       const data = await res.json();
@@ -124,39 +111,33 @@ function DailyLogCard({ districtId, onSuccess }: { districtId: string, onSuccess
   }
 
   return (
-    <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-xl p-6 shadow-sm flex flex-col h-full text-white">
+    <div className="bg-bg-secondary border border-border-default rounded-xl p-6 shadow-sm flex flex-col h-full text-text-primary">
       <div className="flex items-center gap-2 mb-6">
-        <Activity className="h-5 w-5 text-cyan-400" />
-        <h3 className="font-bold text-lg">Daily Respiratory Check-in</h3>
+        <Activity className="h-5 w-5 text-brand" />
+        <h3 className="font-bold text-text-primary text-lg">Daily Respiratory Check-in</h3>
       </div>
       
       <div className="space-y-6 flex-1">
         <div>
-          <label className="block text-sm font-semibold mb-2 text-slate-200">Coughing Severity ({cough}/10)</label>
-          <input type="range" min="0" max="10" value={cough} onChange={e => setCough(Number(e.target.value))} className="w-full accent-cyan-500" />
+          <label className="block text-sm font-semibold mb-2 text-text-primary">Coughing Severity ({cough}/10)</label>
+          <input type="range" min="0" max="10" value={cough} onChange={e => setCough(Number(e.target.value))} className="w-full accent-brand" />
         </div>
         <div>
-          <label className="block text-sm font-semibold mb-2 text-slate-200">Shortness of Breath ({breath}/10)</label>
-          <input type="range" min="0" max="10" value={breath} onChange={e => setBreath(Number(e.target.value))} className="w-full accent-cyan-500" />
+          <label className="block text-sm font-semibold mb-2 text-text-primary">Shortness of Breath ({breath}/10)</label>
+          <input type="range" min="0" max="10" value={breath} onChange={e => setBreath(Number(e.target.value))} className="w-full accent-brand" />
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold mb-2 text-slate-200">Sputum Color</label>
-            <select value={sputum} onChange={e => setSputum(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-cyan-500 outline-none">
-              <option value="none">None</option>
-              <option value="clear">Clear</option>
-              <option value="yellow">Yellow</option>
-              <option value="green">Green</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold mb-2 text-slate-200">Today&apos;s SpO₂ %</label>
-            <input type="number" min="0" max="100" placeholder="e.g. 98" value={spo2} onChange={e => setSpo2(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-cyan-500 outline-none" />
-          </div>
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-text-primary">Sputum Color</label>
+          <select value={sputum} onChange={e => setSputum(e.target.value)} className="w-full bg-bg-primary border border-border-default rounded-lg px-3 py-2 text-sm text-text-primary focus:ring-1 focus:ring-brand outline-none">
+            <option value="none">None</option>
+            <option value="clear">Clear</option>
+            <option value="yellow">Yellow</option>
+            <option value="green">Green</option>
+          </select>
         </div>
       </div>
 
-      <button onClick={handleSubmit} disabled={isSubmitting} className="mt-6 w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg font-semibold shadow-sm transition-all hover:scale-[1.02] disabled:opacity-50">
+      <button onClick={handleSubmit} disabled={isSubmitting} className="mt-6 w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand hover:bg-brand-hover text-white rounded-lg font-semibold shadow-sm transition-all hover:scale-[1.02] disabled:opacity-50">
         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Stethoscope className="h-5 w-5" />}
         Submit Log
       </button>

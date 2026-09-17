@@ -30,7 +30,6 @@ export default function OnboardingPage() {
   const [ageGroup, setAgeGroup] = useState<string>("adult");
   const [exposure, setExposure] = useState<string>("mostly_indoors");
   const [rescueInhaler, setRescueInhaler] = useState<string>("never");
-  const [baselineSpo2, setBaselineSpo2] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   
   const [locationName, setLocationName] = useState<string | null>(null);
@@ -51,7 +50,6 @@ export default function OnboardingPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const p = profile as any;
       setRescueInhaler(p.rescue_inhaler_usage || "never");
-      if (p.baseline_spo2) setBaselineSpo2(p.baseline_spo2.toString());
       setDistrictId(profile.home_district_id);
     } else {
       // Try to migrate from local storage
@@ -88,17 +86,6 @@ export default function OnboardingPage() {
   const handleSave = async () => {
     if (!user) return;
     
-    // SpO2 Validation: Must be between 70 and 100
-    const spo2Num = baselineSpo2 ? parseInt(baselineSpo2, 10) : null;
-    if (spo2Num !== null && (isNaN(spo2Num) || spo2Num < 70 || spo2Num > 100)) {
-      showToast({
-        title: "Invalid SpO2",
-        message: "Please enter a valid baseline SpO₂ between 70% and 100%.",
-        variant: "error"
-      });
-      return;
-    }
-    
     setIsSaving(true);
     
     try {
@@ -109,7 +96,6 @@ export default function OnboardingPage() {
         conditions: selected,
         exposure_level: exposure,
         rescue_inhaler_usage: rescueInhaler,
-        baseline_spo2: baselineSpo2 ? parseInt(baselineSpo2, 10) : null,
         home_district_id: districtId,
         profile_completed: true,
         updated_at: new Date().toISOString(),
@@ -284,18 +270,6 @@ export default function OnboardingPage() {
                 <option value="daily">Daily</option>
                 <option value="multiple_daily">Multiple times a day</option>
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-text-primary mb-2">Baseline SpO₂ %</label>
-              <input
-                type="number"
-                min="70"
-                max="100"
-                value={baselineSpo2}
-                onChange={(e) => setBaselineSpo2(e.target.value)}
-                placeholder="e.g., 98"
-                className="w-full px-4 py-3 rounded-lg border border-border-default bg-bg-primary text-text-primary focus:border-brand outline-none"
-              />
             </div>
           </div>
         </div>
