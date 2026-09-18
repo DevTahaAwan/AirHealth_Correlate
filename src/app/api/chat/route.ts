@@ -1,5 +1,5 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { streamText } from 'ai';
+import { streamText, convertToModelMessages } from 'ai';
 
 export const maxDuration = 30; // Vercel limit
 
@@ -20,7 +20,7 @@ Give them brief, practical, and highly specific advice for going outside today. 
     const result = await streamText({
       model: google('gemini-1.5-flash'),
       system: systemPrompt,
-      messages,
+      messages: await convertToModelMessages(messages),
     });
 
     return result.toUIMessageStreamResponse();
