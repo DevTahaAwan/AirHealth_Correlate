@@ -18,7 +18,7 @@ They live in ${context.districtName || "their local area"}, where the current AQ
 Give them brief, practical, and highly specific advice for going outside today. Keep your answers concise and empathetic.`;
 
     const result = await streamText({
-      model: google('gemini-1.5-flash'),
+      model: google('gemini-flash-latest'),
       system: systemPrompt,
       messages: await convertToModelMessages(messages),
     });
