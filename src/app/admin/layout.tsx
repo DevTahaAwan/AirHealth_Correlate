@@ -2,15 +2,18 @@
 
 import React from "react";
 import Link from "next/link";
-import { Wind, ShieldAlert, LayoutDashboard, SlidersHorizontal, LogOut, BarChart3 } from "lucide-react";
+import { Wind, ShieldAlert, LayoutDashboard, SlidersHorizontal, LogOut, BarChart3, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/components/layout/header";
 
-export default function AdminLayout({
+import { DashboardProvider, useDashboardContext } from "./context";
+
+function AdminLayoutContent({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { showMetrics, setShowMetrics } = useDashboardContext();
 
   const handleLogout = async () => {
     try {
@@ -53,6 +56,14 @@ export default function AdminLayout({
         </nav>
 
         <div className="p-4 border-t border-border-default flex flex-col gap-2">
+          <button
+            onClick={() => setShowMetrics(!showMetrics)}
+            className="flex items-center gap-3 px-3 py-2 text-text-secondary hover:bg-bg-tertiary hover:text-text-primary rounded-md font-medium text-sm transition-colors w-full mb-2"
+          >
+            {showMetrics ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showMetrics ? "Hide Stats" : "Show Stats"}
+          </button>
+          
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 bg-bg-primary p-3 rounded-lg border border-border-default flex-1">
               <div className="w-8 h-8 rounded-full bg-brand-subtle flex items-center justify-center">
@@ -93,5 +104,17 @@ export default function AdminLayout({
         </div>
       </main>
     </div>
+  );
+}
+
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <DashboardProvider>
+      <AdminLayoutContent>{children}</AdminLayoutContent>
+    </DashboardProvider>
   );
 }

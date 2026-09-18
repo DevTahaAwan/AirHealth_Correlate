@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Activity, MapPin, AlertCircle, Loader2, Users } from "lucide-react";
 import { DLNMResult, PredictiveForecastDay, DistrictListItem, SurgeFlagItem } from "@/lib/types";
 import { MapWrapper } from "@/components/features/map-wrapper";
+import { useDashboardContext } from "./context";
 
 interface Metrics {
   totalReportsToday: number;
@@ -21,6 +22,7 @@ interface DemographicData {
 }
 
 export default function AdminPage() {
+  const { showMetrics } = useDashboardContext();
   const [reports, setReports] = useState([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [demographics, setDemographics] = useState<DemographicData[]>([]);
@@ -87,6 +89,7 @@ export default function AdminPage() {
   return (
     <div className="h-full flex flex-col relative">
       {/* Top Overlay Metrics */}
+      {showMetrics && (
       <div className="absolute top-4 left-4 right-4 z-10 grid grid-cols-1 md:grid-cols-4 gap-4 pointer-events-none">
         {/* Metric 1 */}
         <div className="bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-xl p-4 shadow-xl pointer-events-auto">
@@ -157,6 +160,7 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
+      )}
 
 
 
