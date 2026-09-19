@@ -4,15 +4,22 @@ import React, { useRef, useEffect, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { Send, Loader2, Bot, User, MessageCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
 
 interface ChatbotProps {
   context: {
     userName: string;
     ageGroup: string;
     conditions: string;
+    everUsedInhaler?: boolean;
     districtName: string;
     aqi: number;
     pm25: number | null;
+    pm10?: number | null;
+    co?: number | null;
+    so2?: number | null;
+    no2?: number | null;
+    o3?: number | null;
   };
 }
 
@@ -20,33 +27,36 @@ export function Chatbot({ context }: ChatbotProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
 
+  const [localMessages] = useState([
+    {
+      id: "welcome",
+      role: "assistant",
+      parts: [{ type: "text", text: `Hi ${context.userName.split(" ")[0]}! I'm your AI Health Advisor. The AQI in ${context.districtName} is ${context.aqi}. How can I help you safely plan your day?` }],
+      content: `Hi ${context.userName.split(" ")[0]}! I'm your AI Health Advisor. The AQI in ${context.districtName} is ${context.aqi}. How can I help you safely plan your day?`
+    }
+  ]);
+
   const chatOptions = {
     api: "/api/chat",
-    body: {
-      data: {
-        context,
-      },
-    },
-    initialMessages: [
-      {
-        id: "welcome",
-        role: "assistant",
-        parts: [{ type: "text", text: `Hi ${context.userName.split(" ")[0]}! I'm your AI Health Advisor. The AQI in ${context.districtName} is ${context.aqi}. How can I help you safely plan your day?` }],
-      },
-    ],
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { messages, sendMessage, isLoading } = useChat(chatOptions as any) as any;
 
+  const displayMessages = [...localMessages, ...messages];
+
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
     
-    // Use sendMessage as explicitly requested by user
-    sendMessage({ text: input });
+    sendMessage({ text: input }, { body: { context } });
     
     setInput("");
+  };
+
+  const handlePresetClick = (question: string) => {
+    if (isLoading) return;
+    sendMessage({ text: question }, { body: { context } });
   };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -79,7 +89,7 @@ export function Chatbot({ context }: ChatbotProps) {
           
           <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {messages?.map((m: any) => (
+            {displayMessages?.map((m: any) => (
               <div
                 key={m.id}
                 className={cn(
@@ -101,15 +111,13 @@ export function Chatbot({ context }: ChatbotProps) {
                   )}
                 >
                   <div className="prose prose-sm dark:prose-invert max-w-none">
-                    {/* Render message parts if available, fallback to content string */}
-                    {m.parts 
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      ? m.parts.map((part: any, i: number) => {
-                          if (part.type === 'text') return <span key={i}>{part.text}</span>;
-                          return null;
-                        })
-                      : m.content
-                    }
+                    <ReactMarkdown>
+                      {m.parts 
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        ? m.parts.map((p: any) => p.text).join('')
+                        : m.content
+                      }
+                    </ReactMarkdown>
                   </div>
                 </div>
                 {m.role === "user" && (
@@ -133,6 +141,19 @@ export function Chatbot({ context }: ChatbotProps) {
           </div>
 
           <div className="p-4 border-t border-slate-800 bg-slate-900/50">
+            <div className="flex flex-wrap gap-2 mb-3">
+              {["Precautions for today", "Is it safe to exercise outside?", "What does today's AQI mean for me?"].map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => handlePresetClick(q)}
+                  disabled={isLoading}
+                  className="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs rounded-full border border-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap hover:text-cyan-400"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
             <form
               onSubmit={handleFormSubmit}
               className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-full px-4 py-2 focus-within:ring-2 focus-within:ring-cyan-500/50 transition-all"

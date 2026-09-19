@@ -9,12 +9,14 @@ const google = createGoogleGenerativeAI({
 
 export async function POST(req: Request) {
   try {
-    const { messages, data } = await req.json();
-    const context = data?.context || {};
+    const { messages, context: rawContext } = await req.json();
+    const context = rawContext || {};
 
     const systemPrompt = `You are an expert respiratory health advisor. 
 You are talking to ${context.userName || "a user"}, who is ${context.ageGroup || "an adult"} and suffers from ${context.conditions || "no specific conditions"}. 
-They live in ${context.districtName || "their local area"}, where the current AQI is ${context.aqi || "unknown"} and PM2.5 is ${context.pm25 || "unknown"}. 
+${context.everUsedInhaler ? "They have a history of using an inhaler." : ""}
+They live in ${context.districtName || "their local area"}, where the current AQI is ${context.aqi || "unknown"} and PM2.5 is ${context.pm25 || "unknown"}.
+${context.pm10 !== undefined ? `PM10 is ${context.pm10}. ` : ""}${context.co !== undefined ? `CO is ${context.co} ppm. ` : ""}${context.so2 !== undefined ? `SO2 is ${context.so2} ppb. ` : ""}${context.no2 !== undefined ? `NO2 is ${context.no2} ppb. ` : ""}${context.o3 !== undefined ? `O3 is ${context.o3} ppm.` : ""} 
 Give them brief, practical, and highly specific advice for going outside today. Keep your answers concise and empathetic.`;
 
     const result = await streamText({

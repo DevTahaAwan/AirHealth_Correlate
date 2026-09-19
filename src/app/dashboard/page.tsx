@@ -424,9 +424,15 @@ export default function PersonalizedDashboard() {
             userName: profile.full_name || "User",
             ageGroup: profile.age_group.replace("_", " "),
             conditions: profile.conditions.length > 0 ? profile.conditions.map(c => c.replace("_", " ")).join(", ") : "None",
+            everUsedInhaler: profile.ever_used_inhaler || false,
             districtName: district.name,
             aqi: district.aqi || 0,
-            pm25: district.pm25_value ?? effectivePm25
+            pm25: district.pm25_value ?? effectivePm25,
+            pm10: displayPm10,
+            co: displayCo,
+            so2: displaySo2,
+            no2: displayNo2,
+            o3: displayO3,
           }}
         />
       )}

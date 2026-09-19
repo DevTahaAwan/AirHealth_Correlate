@@ -9,6 +9,7 @@ export interface UserProfile {
   exposure_level: string;
   home_district_id: string | null;
   profile_completed: boolean;
+  ever_used_inhaler?: boolean;
 }
 
 export function useUserProfile() {
